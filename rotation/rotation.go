@@ -41,42 +41,56 @@ func main() {
 		return
 	}
 
-	var image0 Image
-	image0.Fichier = "blank.png"
-	image0.Orientation = "blank"
-
 	//copie des deux fichiers en input dans le bon dossier
-	copie("up.png", "../pattern_test/up.png") //si on sait pas ce qu'on nous donne on peut remplacer par image1.Fichier
+	copie(image1.Fichier, "../pattern_test/"+image1.Fichier) //si on sait pas ce qu'on nous donne on peut remplacer par image1.Fichier
 	copie("blank.png", "../pattern_test/blank.png")
 
 	// Afficher les données pour tester
 	//fmt.Printf("Image: %s\n", image0.Fichier)
 	//fmt.Printf("Orientation: %s\n", image1.Orientation)
 
-	//Creation des 3 autres images
-	par1 := "down"
-	inputFile := "up.png"
-	outputFile1 := "../pattern_test/down.png"
-
-	erreur1 := flipImage(inputFile, outputFile1, par1)
+	//Creation des 3 autres images en fonction de image1.Orientation
+	var par1, par2, par3 string
+	var sens string
+	if image1.Orientation == "up" {
+		par1 = "down"
+		par2 = "right"
+		par3 = "left"
+		sens = "vertical"
+	}
+	if image1.Orientation == "down" {
+		par1 = "up"
+		par2 = "left"
+		par3 = "right"
+		sens = "vertical"
+	}
+	if image1.Orientation == "right" {
+		par1 = "left"
+		par2 = "down"
+		par3 = "up"
+		sens = "horizontal"
+	}
+	if image1.Orientation == "left" {
+		par1 = "right"
+		par2 = "up"
+		par3 = "down"
+		sens = "horizontal"
+	}
+	erreur1 := flipImage(image1.Fichier, "../pattern_test/"+par1+".png", 1, sens)
 	if erreur1 != nil {
-		fmt.Println("Erreur down :", err)
+		fmt.Println("Erreur down :", erreur1)
 		return
 	}
-	par2 := "left"
-	outputFile2 := "../pattern_test/left.png"
 
-	erreur2 := flipImage(inputFile, outputFile2, par2)
+	erreur2 := flipImage(image1.Fichier, "../pattern_test/"+par2+".png", 2, sens)
 	if erreur2 != nil {
-		fmt.Println("Erreur left :", err)
+		fmt.Println("Erreur left :", erreur2)
 		return
 	}
-	par3 := "right"
-	outputFile3 := "../pattern_test/right.png"
 
-	erreur3 := flipImage(inputFile, outputFile3, par3)
+	erreur3 := flipImage(image1.Fichier, "../pattern_test/"+par3+".png", 3, sens)
 	if erreur3 != nil {
-		fmt.Println("Erreur right:", err)
+		fmt.Println("Erreur right:", erreur3)
 		return
 	}
 }
@@ -107,7 +121,7 @@ func copie(Source, Dest string) {
 	}
 }
 
-func flipImage(inputFile, outputFile, param string) error {
+func flipImage(inputFile, outputFile string, param int, sens string) error {
 	// Ouvrir le fichier d'entrée
 	file, err := os.Open(inputFile)
 	if err != nil {
@@ -126,7 +140,7 @@ func flipImage(inputFile, outputFile, param string) error {
 	flipped := image.NewRGBA(bounds)
 
 	//operations de retournement
-	if param == "down" {
+	if param == 1 && sens == "vertical" { //rotation 180 degres, retournement vertical
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 				newY := bounds.Max.Y - (y - bounds.Min.Y) - 1
@@ -134,7 +148,15 @@ func flipImage(inputFile, outputFile, param string) error {
 			}
 		}
 	}
-	if param == "right" {
+	if param == 1 && sens == "horizontal" { //rotation 180 degres, retournement horizontal
+		for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+			for x := bounds.Min.X; x < bounds.Max.X; x++ {
+				newX := bounds.Max.X - (x - bounds.Min.X) - 1
+				flipped.Set(newX, y, img.At(x, y))
+			}
+		}
+	}
+	if param == 2 { // rotation de 90 degrés anti-horaire
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 				newX := bounds.Max.Y - (y - bounds.Min.Y) - 1
@@ -143,14 +165,11 @@ func flipImage(inputFile, outputFile, param string) error {
 			}
 		}
 	}
-	if param == "left" {
+	if param == 3 { // rotation de 90 degrés anti-horaire
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
-				// Calculer la nouvelle position après une rotation de 90 degrés anti-horaire
 				newX := y - bounds.Min.Y
 				newY := bounds.Max.X - (x - bounds.Min.X) - 1
-
-				// Définir le pixel à la nouvelle position
 				flipped.Set(newX, newY, img.At(x, y))
 			}
 		}
