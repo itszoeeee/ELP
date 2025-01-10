@@ -14,7 +14,27 @@ import (
 // Structure pour nos 5 images avec le nom du fichier et l'orientation (blank,up,down,right,left)
 type Image struct {
 	Fichier     string `json:"image"`
-	Orientation string `json:"orientation"`
+	Orientation *Orientation
+}
+
+type Temp struct {
+	Fichiert     string `json:"image"`
+	Orientationt string `json:"orientation"`
+}
+
+// Structure pour une orientation
+type Orientation struct {
+	Name       string
+	Transform1 string
+	Transform2 string
+	Transform3 string
+}
+
+var orientations = map[string]*Orientation{ //equivalent d'un dico pour faire correspondre une orientation a une structure Orientation
+	"up":    {"up", "right", "down", "left"},
+	"down":  {"down", "left", "up", "right"},
+	"right": {"right", "down", "left", "up"},
+	"left":  {"left", "up", "right", "down"},
 }
 
 func main() {
@@ -34,84 +54,37 @@ func main() {
 	}
 
 	// Décoder le JSON dans une structure
+	var temp1 Temp //creation d'un Temp pour recuperer l'orientation dans le json puis la transformer en struct Orientation
 	var image1 Image
-	err = json.Unmarshal(bxteValue, &image1) //unmarshal parse le json et stocke le resultat dans &image
+	err = json.Unmarshal(bxteValue, &temp1) //unmarshal parse le json et stocke le resultat dans &image
 	if err != nil {
 		fmt.Println("Erreur lors du décodage JSON:", err)
 		return
 	}
 
-	//copie des deux fichiers en input dans le bon dossier
-	copie(image1.Fichier, "../pattern_test/"+image1.Fichier) //si on sait pas ce qu'on nous donne on peut remplacer par image1.Fichier
-	copie("blank.png", "../pattern_test/blank.png")
-
-	// Afficher les données pour tester
-	//fmt.Printf("Image: %s\n", image0.Fichier)
-	//fmt.Printf("Orientation: %s\n", image1.Orientation)
-
-	//Creation des 3 autres images en fonction de image1.Orientation
-	var par1, par2, par3 string
-	if image1.Orientation == "up" {
-		par1 = "down"
-		par2 = "right"
-		par3 = "left"
-	}
-	if image1.Orientation == "down" {
-		par1 = "up"
-		par2 = "left"
-		par3 = "right"
-	}
-	if image1.Orientation == "right" {
-		par1 = "left"
-		par2 = "down"
-		par3 = "up"
-	}
-	if image1.Orientation == "left" {
-		par1 = "right"
-		par2 = "up"
-		par3 = "down"
-	}
-	erreur1 := flipImage(image1.Fichier, "../pattern_test/"+par1+".png", 2)
-	if erreur1 != nil {
-		fmt.Println("Erreur down :", erreur1)
+	image1.Fichier = temp1.Fichiert
+	image1.Orientation = orientations[temp1.Orientationt] //remplace "down"(ou autre) par une structure Orientation grace a la var orientations
+	if image1.Orientation == nil {
+		fmt.Println("Orientation invalide :", image1.Orientation)
 		return
 	}
 
-	erreur2 := flipImage(image1.Fichier, "../pattern_test/"+par2+".png", 1)
-	if erreur2 != nil {
-		fmt.Println("Erreur left :", erreur2)
-		return
-	}
-
-	erreur3 := flipImage(image1.Fichier, "../pattern_test/"+par3+".png", 3)
-	if erreur3 != nil {
-		fmt.Println("Erreur right:", erreur3)
-		return
-	}
-}
-
-func copie(Source, Dest string) {
-
-	// Ouvrir le fichier source
-	src, err := os.Open(Source)
+	// Créer les 3 autres images
+	err = flipImage(image1.Fichier, "../pattern_test/"+image1.Orientation.Transform1+".png", 1)
 	if err != nil {
-		fmt.Println("Erreur lors de l'ouverture du fichier source:", err)
+		fmt.Println("Erreur Transform1 :", err)
 		return
 	}
-	defer src.Close()
 
-	// Créer ou ouvrir le fichier de destination
-	dst, err := os.Create(Dest)
+	err = flipImage(image1.Fichier, "../pattern_test/"+image1.Orientation.Transform2+".png", 2)
 	if err != nil {
-		fmt.Println("Erreur lors de la création du fichier destination:", err)
+		fmt.Println("Erreur Transform2 :", err)
 		return
 	}
-	defer dst.Close()
 
-	// Copier le contenu de l'image source vers le fichier de destination
-	_, err = io.Copy(dst, src)
+	err = flipImage(image1.Fichier, "../pattern_test/"+image1.Orientation.Transform3+".png", 3)
 	if err != nil {
-		fmt.Println("Erreur lors de la copie du fichier:", err)
+		fmt.Println("Erreur Transform3 :", err)
 		return
 	}
 }
