@@ -4,11 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
-	"image/jpeg"
-	"image/png"
 	"io"
 	"os"
-	"strings"
 )
 
 // Structure pour nos 5 images avec le nom du fichier et l'orientation (blank,up,down,right,left)
@@ -70,37 +67,38 @@ func main() {
 	}
 
 	// Créer les 3 autres images
-	err = flipImage(image1.Fichier, "../pattern_test/"+image1.Orientation.Transform1+".png", 1)
+	var imagea, imageb, imagec image.Image
+	imagea, err = flipImage(image1.Fichier, 1)
 	if err != nil {
 		fmt.Println("Erreur Transform1 :", err)
 		return
 	}
 
-	err = flipImage(image1.Fichier, "../pattern_test/"+image1.Orientation.Transform2+".png", 2)
+	imageb, err = flipImage(image1.Fichier, 2)
 	if err != nil {
 		fmt.Println("Erreur Transform2 :", err)
 		return
 	}
 
-	err = flipImage(image1.Fichier, "../pattern_test/"+image1.Orientation.Transform3+".png", 3)
+	imagec, err = flipImage(image1.Fichier, 3)
 	if err != nil {
 		fmt.Println("Erreur Transform3 :", err)
 		return
 	}
 }
 
-func flipImage(inputFile, outputFile string, param int) error {
+func flipImage(inputFile string, param int) (image.Image, error) {
 	// Ouvrir le fichier d'entrée
 	file, err := os.Open(inputFile)
 	if err != nil {
-		return fmt.Errorf("erreur lors de l'ouverture de l'image : %v", err)
+		return nil, fmt.Errorf("erreur lors de l'ouverture de l'image : %v", err)
 	}
 	defer file.Close()
 
 	// Décoder l'image
-	img, format, err := image.Decode(file)
+	img, _, err := image.Decode(file)
 	if err != nil {
-		return fmt.Errorf("erreur lors du décodage de l'image : %v", err)
+		return nil, fmt.Errorf("erreur lors du décodage de l'image : %v", err)
 	}
 
 	// Rotation des images en fonction de param (1 pour une rotation, 2 pour deux rotations, ...)
@@ -113,31 +111,10 @@ func flipImage(inputFile, outputFile string, param int) error {
 	case 3: // Rotation de 270 degrés (trois rotations de 90 degres)
 		rotated = rotate90(rotate90(rotate90(img)))
 	default:
-		return fmt.Errorf("valeur invalide pour param : %d. Les valeurs valides sont 1, 2 ou 3", param)
+		return nil, fmt.Errorf("valeur invalide pour param : %d. Les valeurs valides sont 1, 2 ou 3", param)
 	}
 
-	// Créer le fichier de sortie
-	output, err := os.Create(outputFile)
-	if err != nil {
-		return fmt.Errorf("erreur lors de la création du fichier de sortie : %v", err)
-	}
-	defer output.Close()
-
-	// Encoder et sauvegarder l'image retournée
-	switch strings.ToLower(format) {
-	case "png":
-		err = png.Encode(output, rotated)
-	case "jpeg":
-		err = jpeg.Encode(output, rotated, nil)
-	default:
-		return fmt.Errorf("format d'image non supporté : %s", format)
-	}
-
-	if err != nil {
-		return fmt.Errorf("erreur lors de l'encodage de l'image : %v", err)
-	}
-
-	return nil
+	return rotated, nil
 }
 
 // Fonction pour effectuer une rotation de 90 degrés vers la droite
