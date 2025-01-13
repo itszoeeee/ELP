@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-const DIM = 20
+const DIM = 100
 
 const BLANK = 0
 const T_UP = 1
@@ -33,29 +33,57 @@ var rules = [][][]int{
 	{
 		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT}, // north
 		{T_UP, T_DOWN, T_LEFT, C_UP},              // east
-		{BLANK, T_DOWN},                           // south
-		{T_UP, T_RIGHT, T_DOWN},                   // west
+		{BLANK, T_DOWN, C_DOWN, C_LEFT},           // south
+		{T_UP, T_RIGHT, T_DOWN, C_RIGHT, C_DOWN},  // west
 	},
 	// T_RIGHT
 	{
-		{T_RIGHT, T_DOWN, T_LEFT}, // north
-		{T_UP, T_DOWN, T_LEFT},    // east
-		{T_UP, T_RIGHT, T_LEFT},   // south
-		{BLANK, T_LEFT},           // west
+		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT}, // north
+		{T_UP, T_DOWN, T_LEFT, C_UP, C_LEFT},      // east
+		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT},    // south
+		{BLANK, T_LEFT, C_UP, C_LEFT},             // west
 	},
 	// T_DOWN
 	{
-		{BLANK, T_UP},           // north
-		{T_UP, T_DOWN, T_LEFT},  // east
-		{T_UP, T_RIGHT, T_LEFT}, // south
-		{T_UP, T_RIGHT, T_DOWN}, // west
+		{BLANK, T_UP, C_UP, C_RIGHT},             // north
+		{T_UP, T_DOWN, T_LEFT, C_UP, C_LEFT},     // east
+		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT},   // south
+		{T_UP, T_RIGHT, T_DOWN, C_RIGHT, C_DOWN}, // west
 	},
 	// T_LEFT
 	{
-		{T_RIGHT, T_DOWN, T_LEFT}, // north
-		{BLANK, T_RIGHT},          // east
-		{T_UP, T_RIGHT, T_LEFT},   // south
-		{T_UP, T_RIGHT, T_DOWN},   // west
+		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT}, // north
+		{BLANK, T_RIGHT, C_RIGHT, C_DOWN},         // east
+		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT},    // south
+		{T_UP, T_RIGHT, T_DOWN, C_RIGHT, C_DOWN},  // west
+	},
+	// C_UP
+	{
+		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT}, // north
+		{BLANK, T_RIGHT, C_RIGHT, C_DOWN},         // east
+		{BLANK, T_DOWN, C_DOWN, C_LEFT},           // south
+		{T_UP, T_RIGHT, T_DOWN, C_RIGHT, C_DOWN},  // west
+	},
+	// C_RIGHT
+	{
+		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT}, // north
+		{T_UP, T_DOWN, T_LEFT, C_UP, C_LEFT},      // east
+		{BLANK, T_DOWN, C_DOWN, C_LEFT},           // south
+		{BLANK, T_LEFT, C_UP, C_LEFT},             // west
+	},
+	// C_DOWN
+	{
+		{BLANK, T_UP, C_UP, C_RIGHT},           // north
+		{T_UP, T_DOWN, T_LEFT, C_UP, C_LEFT},   // east
+		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT}, // south
+		{BLANK, T_LEFT, C_UP, C_LEFT},          // west
+	},
+	// C_LEFT
+	{
+		{BLANK, T_UP, C_UP, C_RIGHT},             // north
+		{BLANK, T_RIGHT, C_RIGHT, C_DOWN},        // east
+		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT},   // south
+		{T_UP, T_RIGHT, T_DOWN, C_RIGHT, C_DOWN}, // west
 	},
 }
 
@@ -80,31 +108,47 @@ func loadImage(path string) (image.Image, error) {
 	return img, nil
 }
 
-func createTile() (Tiles [5]image.Image, err error) {
+func createTile() (Tiles []image.Image, err error) {
 	// Charger l'image pattern.png
-	for i := 0; i < 5; i++ {
-		Tiles[i] = image.Transparent
+	for i := 0; i < len(rules); i++ {
+		Tiles = append(Tiles, image.Transparent)
 	}
 
 	Tiles[0], err = loadImage("pattern/blank.png")
 	if err != nil {
 		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'blank.png': %w", err)
 	}
-	Tiles[1], err = loadImage("pattern/up.png")
+	Tiles[1], err = loadImage("pattern/t_up.png")
 	if err != nil {
-		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'up.png': %w", err)
+		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 't_up.png': %w", err)
 	}
-	Tiles[2], err = loadImage("pattern/right.png")
+	Tiles[2], err = loadImage("pattern/t_right.png")
 	if err != nil {
-		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'right.png': %w", err)
+		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 't_right.png': %w", err)
 	}
-	Tiles[3], err = loadImage("pattern/down.png")
+	Tiles[3], err = loadImage("pattern/t_down.png")
 	if err != nil {
-		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'down.png': %w", err)
+		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 't_down.png': %w", err)
 	}
-	Tiles[4], err = loadImage("pattern/left.png")
+	Tiles[4], err = loadImage("pattern/t_left.png")
 	if err != nil {
-		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'left.png': %w", err)
+		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 't_left.png': %w", err)
+	}
+	Tiles[5], err = loadImage("pattern/c_up.png")
+	if err != nil {
+		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'c_up.png': %w", err)
+	}
+	Tiles[6], err = loadImage("pattern/c_right.png")
+	if err != nil {
+		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'c_right.png': %w", err)
+	}
+	Tiles[7], err = loadImage("pattern/c_down.png")
+	if err != nil {
+		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'c_down.png': %w", err)
+	}
+	Tiles[8], err = loadImage("pattern/c_left.png")
+	if err != nil {
+		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'c_left.png': %w", err)
 	}
 	return Tiles, nil
 }
@@ -154,7 +198,6 @@ func checkValid(option *[]int, valid []int) {
 }
 
 func main() {
-
 	// ----- Initialisation -----
 
 	// Création des tuiles
@@ -171,8 +214,9 @@ func main() {
 	for i := 0; i < DIM*DIM; i++ {
 		// Crée une nouvelle instance de gridItem
 		cell := &gridItem{
-			collapsed: false,                               // Initialisé à false
-			options:   []int{BLANK, UP, RIGHT, DOWN, LEFT}, // Options fixes
+			collapsed: false, // Initialisé à false
+			// Ajouter avec une  boucle (avec len(rules)) ?
+			options: []int{BLANK, T_UP, T_RIGHT, T_DOWN, T_LEFT, C_UP, C_RIGHT, C_DOWN, C_LEFT}, // Options fixes
 		}
 		grid = append(grid, cell) // Ajouter l'élément à la grille
 	}
@@ -195,18 +239,6 @@ func main() {
 	var old_percent int = -1
 
 	for len(gridCopy) > 1 { // Boucle principale
-		// --- Faire une fonction ---
-		// ----- Condition d'affichage (si la tuile est collapsed) -----
-		for i := 0; i < DIM; i++ {
-			for j := 0; j < DIM; j++ {
-				var cell = grid[i+j*DIM]
-				if cell.collapsed && len(cell.options) != 0 {
-					var index = cell.options[0]
-					placeImageInMatrix(outputImage, Tiles[index], i, j, cellSize)
-				}
-			}
-		}
-		// -------------------------
 		// fmt.Println("Grille:")
 		// for _, v := range grid {
 		// 	fmt.Print(v.collapsed)
@@ -253,7 +285,7 @@ func main() {
 				if grid[index].collapsed {
 					nextGrid = append(nextGrid, grid[index])
 				} else {
-					var cell_option = []int{BLANK, UP, RIGHT, DOWN, LEFT}
+					var cell_option = []int{BLANK, T_UP, T_RIGHT, T_DOWN, T_LEFT, C_UP, C_RIGHT, C_DOWN, C_LEFT} // Ajouter avec une  boucle (avec len(rules)) ?
 
 					// Look north
 					if i > 0 {

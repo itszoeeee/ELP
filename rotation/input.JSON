@@ -1,6 +1,4 @@
 {
-    "imaget": "right.png",
-    "orientationt": "right",
-	"imagec": "cright.png",
-    "orientationc": "right"
+    "image": "right.png",
+    "orientation": "right"
 }
