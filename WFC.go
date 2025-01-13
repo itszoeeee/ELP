@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-const DIM = 100
+const DIM = 20
 
 const BLANK = 0
 const T_UP = 1
@@ -356,6 +356,12 @@ func main() {
 			fmt.Printf("] %d%%", percent)
 			old_percent = percent
 		}
+	}
+
+	// Affichage de la grille à retourner par le serveur TCP
+	fmt.Println("Grille:")
+	for _, v := range grid {
+		fmt.Print(v.options)
 	}
 
 	// --- Faire une fonction ---
