@@ -14,18 +14,11 @@ type Json struct {
 	Orientationc string `json:"orientationt"`
 }
 
-var correspt = map[string]int{
+var corresp = map[string]int{
 	"up":    1,
 	"right": 2,
 	"down":  3,
 	"left":  4,
-}
-
-var correspc = map[string]int{
-	"up":    5,
-	"right": 6,
-	"down":  7,
-	"left":  8,
 }
 
 func ouverture_json(input_file string) []int {
@@ -57,5 +50,5 @@ func ouverture_json(input_file string) []int {
 		return nil
 	}
 
-	return []int{correspt[images.Orientationt], correspc[images.Orientationc]}
+	return []int{corresp[images.Orientationt], corresp[images.Orientationc]}
 }
