@@ -8,13 +8,52 @@ import (
 	"os"
 )
 
-const DIM = 2
+const DIM = 20
 
 const BLANK = 0
 const UP = 1
 const RIGHT = 2
 const DOWN = 3
 const LEFT = 4
+
+// Définir le tableau de règles
+var rules = [][][]int{
+	// BLANK
+	{
+		{BLANK, UP},
+		{BLANK, RIGHT},
+		{BLANK, DOWN},
+		{BLANK, LEFT},
+	},
+	// UP
+	{
+		{RIGHT, DOWN, LEFT},
+		{UP, DOWN, LEFT},
+		{BLANK, DOWN},
+		{UP, RIGHT, DOWN},
+	},
+	// RIGHT
+	{
+		{RIGHT, DOWN, LEFT},
+		{UP, DOWN, LEFT},
+		{UP, RIGHT, LEFT},
+		{BLANK, LEFT},
+	},
+	// DOWN
+	{
+		{BLANK, UP},
+		{UP, DOWN, LEFT},
+		{UP, RIGHT, LEFT},
+		{UP, RIGHT, DOWN},
+	},
+	// LEFT
+	{
+		{RIGHT, DOWN, LEFT},
+		{BLANK, RIGHT},
+		{UP, RIGHT, LEFT},
+		{UP, RIGHT, DOWN},
+	},
+}
 
 type gridItem struct {
 	collapsed bool  // Champ pour "collapsed"
@@ -88,6 +127,28 @@ func placeImageInMatrix(dst *image.RGBA, src image.Image, gridX, gridY, cellSize
 	}
 }
 
+// Fonction pour vérifier si l'option est valide
+func checkValid(option *[]int, valid []int) {
+	var newOption []int
+	for _, elem := range *option {
+		element := elem
+		found := false
+		// Vérifie si l'élément est dans le tableau valid
+		for _, v := range valid {
+			if element == v {
+				found = true
+				break
+			}
+		}
+		// Si l'élément est valide, on l'ajoute à la nouvelle slice
+		if found {
+			newOption = append(newOption, elem)
+		}
+	}
+	// Met à jour la slice d'origine
+	*option = newOption
+}
+
 func main() {
 
 	// ----- Initialisation -----
@@ -106,8 +167,8 @@ func main() {
 	for i := 0; i < DIM*DIM; i++ {
 		// Crée une nouvelle instance de gridItem
 		cell := &gridItem{
-			collapsed: false,                // Initialisé à false
-			options:   []int{1, 2, 3, 4, 5}, // Options fixes
+			collapsed: false,                               // Initialisé à false
+			options:   []int{BLANK, UP, RIGHT, DOWN, LEFT}, // Options fixes
 		}
 		grid = append(grid, cell) // Ajouter l'élément à la grille
 	}
@@ -123,77 +184,171 @@ func main() {
 
 	// ----- Boucle principale -----
 
-	// TEST
-	// grid[0].options = []int{BLANK, UP}
-	// grid[1].options = []int{DOWN, LEFT}
+	var gridCopy []*gridItem
+	gridCopy = grid
+	var step int = len(gridCopy)
+	var compteur int = 0
+	var old_percent int = -1
 
-	// // Trier la grille par la longueur de "options" (inutile)
-	// sort.Slice(grid, func(i, j int) bool {
-	// 	return len(grid[i].options) < len(grid[j].options)
-	// })
+	for len(gridCopy) > 1 { // Boucle principale
+		// --- Faire une fonction ---
+		// ----- Condition d'affichage (si la tuile est collapsed) -----
+		for i := 0; i < DIM; i++ {
+			for j := 0; j < DIM; j++ {
+				var cell = grid[i+j*DIM]
+				if cell.collapsed && len(cell.options) != 0 {
+					var index = cell.options[0]
+					placeImageInMatrix(outputImage, Tiles[index], i, j, cellSize)
+				}
+			}
+		}
+		// -------------------------
+		// fmt.Println("Grille:")
+		// for _, v := range grid {
+		// 	fmt.Print(v.collapsed)
+		// 	fmt.Println("	", v.options)
+		// }
 
-	// Trouver la longueur minimale de "options" dans la grille
-	minLength := len(grid[0].options)
-	for _, v := range grid {
-		if len(v.options) < minLength {
-			minLength = len(v.options)
+		gridCopy = nil // Réinitialiser gridCopy
+		for _, cell := range grid {
+			if !cell.collapsed {
+				gridCopy = append(gridCopy, cell)
+			}
+		}
+
+		// Trouver la longueur minimale de "options" dans la grille
+		minLength := len(gridCopy[0].options)
+		for _, v := range gridCopy {
+			if len(v.options) < minLength {
+				minLength = len(v.options)
+			}
+		}
+
+		// Créer une nouvelle tranche pour les éléments ayant la longueur minimale
+		var smallestItems []*gridItem
+		for _, v := range gridCopy {
+			if len(v.options) == minLength {
+				smallestItems = append(smallestItems, v)
+			}
+		}
+
+		// Choisir aléatoirement les éléments de plus petites longueurs
+		// rand.Seed(time.Now().UnixNano())                                        // Initialiser le générateur de nombres aléatoires avec l'heure actuelle
+		var randomItem *gridItem = smallestItems[rand.Intn(len(smallestItems))] // Sélectionner une clé aléatoire parmi celles disponibles
+		randomItem.collapsed = true                                             // collapsed l'élément
+		if len(randomItem.options) != 0 {                                       // vérifie que l'élèment c'est pas vide (erreur)
+			var pick int = randomItem.options[rand.Intn(len(randomItem.options))] // choisir un option disponible (aléatoirement)
+			randomItem.options = []int{pick}
+		}
+
+		// Création de la tuile suivante
+		var nextGrid []*gridItem
+		for i := 0; i < DIM; i++ {
+			for j := 0; j < DIM; j++ {
+				var index = j + i*DIM
+				if grid[index].collapsed {
+					nextGrid = append(nextGrid, grid[index])
+				} else {
+					var cell_option = []int{BLANK, UP, RIGHT, DOWN, LEFT}
+
+					// Look up
+					if i > 0 {
+						var up = grid[j+(i-1)*DIM]
+						var validOption []int
+						for _, option := range up.options {
+							var valid []int = rules[option][2]
+							validOption = append(validOption, valid...)
+						}
+						checkValid(&cell_option, validOption)
+					}
+					// Look right
+					if j < DIM-1 {
+						var right = grid[j+1+i*DIM]
+						var validOption []int
+						for _, option := range right.options {
+							var valid []int = rules[option][3]
+							validOption = append(validOption, valid...)
+						}
+						checkValid(&cell_option, validOption)
+					}
+					// Look down
+					if i < DIM-1 {
+						var down = grid[j+(i+1)*DIM]
+						var validOption []int
+						for _, option := range down.options {
+							var valid []int = rules[option][0]
+							validOption = append(validOption, valid...)
+						}
+						checkValid(&cell_option, validOption)
+					}
+					// Look left
+					if j > 0 {
+						var left = grid[j-1+i*DIM]
+						var validOption []int
+						for _, option := range left.options {
+							var valid []int = rules[option][1]
+							validOption = append(validOption, valid...)
+						}
+						checkValid(&cell_option, validOption)
+					}
+					// Crée une nouvelle instance de gridItem
+					cell := &gridItem{
+						collapsed: false,       // Initialisé à false
+						options:   cell_option, // Options fixes
+					}
+					nextGrid = append(nextGrid, cell) // Ajouter l'élément à la grille
+				}
+			}
+		}
+
+		grid = nextGrid
+
+		// Calcul du pourcentage
+		var percent int = (compteur * 101) / step
+		compteur++
+
+		// Affichage de la barre de chargement
+		if old_percent != percent {
+			fmt.Printf("\r[") // permet de revenir au début de la ligne sans en ajouter une nouvelle, afin de mettre à jour la même ligne de la console.
+			for j := 0; j < 50; j++ {
+				if j < percent/2 {
+					fmt.Print("=")
+				} else {
+					fmt.Print(" ")
+				}
+			}
+			fmt.Printf("] %d%%", percent)
+			old_percent = percent
 		}
 	}
 
-	// Créer une nouvelle tranche pour les éléments ayant la longueur minimale
-	var smallestItems []*gridItem
-	for _, v := range grid {
-		if len(v.options) == minLength {
-			smallestItems = append(smallestItems, v)
-		}
-	}
-
-	// Choisir aléatoirement les éléments de plus petites longueurs
-	var randomItem *gridItem = smallestItems[rand.Intn(len(smallestItems))] // Sélectionner une clé aléatoire parmi celles disponibles
-	fmt.Printf("\nÉlément sélectionné : %d\n", randomItem.options)          // Afficher l'élément sélectionné
-	randomItem.collapsed = true                                             // collapsed l'élément
-	var pick int = rand.Intn(len(randomItem.options))                       // choisir un option disponible (aléatoirement)
-	randomItem.options = []int{pick}
-
+	// --- Faire une fonction ---
 	// ----- Condition d'affichage (si la tuile est collapsed) -----
 	for i := 0; i < DIM; i++ {
 		for j := 0; j < DIM; j++ {
 			var cell = grid[i+j*DIM]
-			if cell.collapsed {
+			if cell.collapsed && len(cell.options) != 0 {
 				var index = cell.options[0]
 				placeImageInMatrix(outputImage, Tiles[index], i, j, cellSize)
 			}
 		}
 	}
-
-	// Afficher la nouvelle grille
-	fmt.Println("Nouvelle grille:")
-	for _, v := range grid {
-		fmt.Println(v.options)
-	}
-
-	// Création de la tuile suivante
-	// var nextTile []*gridItem
-	for i := 0; i < DIM; i++ {
-		for j := 0; j < DIM; j++ {
-			// var index = grid[i+j*DIM]
-		}
-	}
+	// -------------------------
 
 	// ----- Exportation de l'image -----
 
 	// Exporter l'image résultante dans un fichier PNG
 	outFile, err := os.Create("output.png")
 	if err != nil {
-		fmt.Println("Erreur lors de la création de l'image de sortie:", err)
+		fmt.Println("\n\n Erreur lors de la création de l'image de sortie:\n", err)
 		return
 	}
 	defer outFile.Close()
 
 	err = png.Encode(outFile, outputImage)
 	if err != nil {
-		fmt.Println("Erreur lors de l'exportation de l'image:", err)
+		fmt.Println("\n\n Erreur lors de l'exportation de l'image:\n", err)
 	}
 
-	fmt.Println("Image exportée avec succès dans output.png")
+	fmt.Println("\n\n Image exportée avec succès dans output.png\n")
 }
