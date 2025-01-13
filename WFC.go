@@ -11,47 +11,51 @@ import (
 const DIM = 20
 
 const BLANK = 0
-const UP = 1
-const RIGHT = 2
-const DOWN = 3
-const LEFT = 4
+const T_UP = 1
+const T_RIGHT = 2
+const T_DOWN = 3
+const T_LEFT = 4
+const C_UP = 5
+const C_RIGHT = 6
+const C_DOWN = 7
+const C_LEFT = 8
 
 // Définir le tableau de règles
 var rules = [][][]int{
 	// BLANK
 	{
-		{BLANK, UP},
-		{BLANK, RIGHT},
-		{BLANK, DOWN},
-		{BLANK, LEFT},
+		{BLANK, T_UP, C_UP, C_RIGHT},      // north
+		{BLANK, T_RIGHT, C_RIGHT, C_DOWN}, // east
+		{BLANK, T_DOWN, C_DOWN, C_LEFT},   // south
+		{BLANK, T_LEFT, C_UP, C_LEFT},     // west
 	},
-	// UP
+	// T_UP
 	{
-		{RIGHT, DOWN, LEFT},
-		{UP, DOWN, LEFT},
-		{BLANK, DOWN},
-		{UP, RIGHT, DOWN},
+		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT}, // north
+		{T_UP, T_DOWN, T_LEFT, C_UP},              // east
+		{BLANK, T_DOWN},                           // south
+		{T_UP, T_RIGHT, T_DOWN},                   // west
 	},
-	// RIGHT
+	// T_RIGHT
 	{
-		{RIGHT, DOWN, LEFT},
-		{UP, DOWN, LEFT},
-		{UP, RIGHT, LEFT},
-		{BLANK, LEFT},
+		{T_RIGHT, T_DOWN, T_LEFT}, // north
+		{T_UP, T_DOWN, T_LEFT},    // east
+		{T_UP, T_RIGHT, T_LEFT},   // south
+		{BLANK, T_LEFT},           // west
 	},
-	// DOWN
+	// T_DOWN
 	{
-		{BLANK, UP},
-		{UP, DOWN, LEFT},
-		{UP, RIGHT, LEFT},
-		{UP, RIGHT, DOWN},
+		{BLANK, T_UP},           // north
+		{T_UP, T_DOWN, T_LEFT},  // east
+		{T_UP, T_RIGHT, T_LEFT}, // south
+		{T_UP, T_RIGHT, T_DOWN}, // west
 	},
-	// LEFT
+	// T_LEFT
 	{
-		{RIGHT, DOWN, LEFT},
-		{BLANK, RIGHT},
-		{UP, RIGHT, LEFT},
-		{UP, RIGHT, DOWN},
+		{T_RIGHT, T_DOWN, T_LEFT}, // north
+		{BLANK, T_RIGHT},          // east
+		{T_UP, T_RIGHT, T_LEFT},   // south
+		{T_UP, T_RIGHT, T_DOWN},   // west
 	},
 }
 
@@ -251,41 +255,41 @@ func main() {
 				} else {
 					var cell_option = []int{BLANK, UP, RIGHT, DOWN, LEFT}
 
-					// Look up
+					// Look north
 					if i > 0 {
-						var up = grid[j+(i-1)*DIM]
+						var north = grid[j+(i-1)*DIM]
 						var validOption []int
-						for _, option := range up.options {
+						for _, option := range north.options {
 							var valid []int = rules[option][2]
 							validOption = append(validOption, valid...)
 						}
 						checkValid(&cell_option, validOption)
 					}
-					// Look right
+					// Look east
 					if j < DIM-1 {
-						var right = grid[j+1+i*DIM]
+						var east = grid[j+1+i*DIM]
 						var validOption []int
-						for _, option := range right.options {
+						for _, option := range east.options {
 							var valid []int = rules[option][3]
 							validOption = append(validOption, valid...)
 						}
 						checkValid(&cell_option, validOption)
 					}
-					// Look down
+					// Look south
 					if i < DIM-1 {
-						var down = grid[j+(i+1)*DIM]
+						var south = grid[j+(i+1)*DIM]
 						var validOption []int
-						for _, option := range down.options {
+						for _, option := range south.options {
 							var valid []int = rules[option][0]
 							validOption = append(validOption, valid...)
 						}
 						checkValid(&cell_option, validOption)
 					}
-					// Look left
+					// Look west
 					if j > 0 {
-						var left = grid[j-1+i*DIM]
+						var west = grid[j-1+i*DIM]
 						var validOption []int
-						for _, option := range left.options {
+						for _, option := range west.options {
 							var valid []int = rules[option][1]
 							validOption = append(validOption, valid...)
 						}
