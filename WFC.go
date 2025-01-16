@@ -259,12 +259,12 @@ func checkValid(option *[]int, valid []int) {
 
 // Structure représentant un élément avec une valeur et un poids.
 type WeightedItem struct {
-	Value  string
+	Value  int
 	Weight int
 }
 
 // Fonction pour effectuer un tirage pondéré.
-func weightedRandom(items []WeightedItem) string {
+func weightedRandom(items []WeightedItem) int {
 	// Calculer la somme totale des poids.
 	totalWeight := 0
 	for _, item := range items {
@@ -284,15 +284,14 @@ func weightedRandom(items []WeightedItem) string {
 		}
 	}
 
-	return "" // Ne devrait jamais arriver si les poids sont bien définis.
+	return 0 // Ne devrait jamais arriver si les poids sont bien définis.
 }
 
-func proba(liste []string) []WeightedItem { // fonction qui prend une liste d'options et leur associe un poids
+func proba(liste []int, p int) []WeightedItem { // fonction qui prend une liste d'options et leur associe un poids
 	var items []WeightedItem
-	p := 50                // probabilité qu'on veut de tirer "blank" (en %)
 	containsBlank := false //pour verifier si blank ets bien disponible parmi les options possibles
 	for _, elem := range liste {
-		if elem == "blank" {
+		if elem == 0 {
 			containsBlank = true
 			break
 		}
@@ -301,8 +300,8 @@ func proba(liste []string) []WeightedItem { // fonction qui prend une liste d'op
 	// Parcours de la liste
 	for i := 0; i < len(liste); i++ {
 		if containsBlank {
-			if liste[i] == "blank" {
-				items = append(items, WeightedItem{"blank", p})
+			if liste[i] == 0 {
+				items = append(items, WeightedItem{0, p}) // l'option 0 correspond à "blank"
 			} else {
 				items = append(items, WeightedItem{liste[i], (100 - p) / (len(liste) - 1)})
 			}
@@ -369,8 +368,12 @@ func main() {
 		var randomItem *gridItem = smallestItems[rand.Intn(len(smallestItems))] // Sélectionner une clé aléatoire parmi celles disponibles
 		randomItem.collapsed = true                                             // collapsed l'élément
 		if len(randomItem.options) != 0 {                                       // vérifie que l'élèment c'est pas vide (erreur)
-			var pick int = randomItem.options[rand.Intn(len(randomItem.options))] // choisir un option disponible (aléatoirement)
-			randomItem.options = []int{pick}
+			// var pick int = randomItem.options[rand.Intn(len(randomItem.options))] // choisir un option disponible (aléatoirement)
+			// randomItem.options = []int{pick}
+			var p = 50 // probabilité qu'on veut de tirer "blank" (en %)
+			var items []WeightedItem = proba(randomItem.options, p)
+			var result = weightedRandom(items)
+			randomItem.options = []int{result}
 		}
 
 		// Création de la tuile suivante
