@@ -377,7 +377,7 @@ func main() {
 		if len(randomItem.options) != 0 {                                       // vérifie que l'élèment c'est pas vide (erreur)
 			// var pick int = randomItem.options[rand.Intn(len(randomItem.options))] // choisir un option disponible (aléatoirement)
 			// randomItem.options = []int{pick}
-			var p = 75 // probabilité qu'on veut de tirer "blank" (en %)
+			var p = 80 // probabilité qu'on veut de tirer "blank" (en %)
 			var items []WeightedItem = proba(randomItem.options, p)
 			var result = weightedRandom(items)
 			randomItem.options = []int{result}
