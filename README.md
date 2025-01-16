@@ -43,8 +43,8 @@ Prend en paramètres une liste de WeightedItem (structure {value, weight} )
 Renvoie un tirage aléatoire d'une des value, avec une probabilité d'apparition weight 
 
 - func proba(liste []string)
-Prend en paramètres la liste des options disponibles pour remplir chaque case
-Si blank est une option, renvoie une liste de WeightedItem avec un poids de p pour blank (p en % choisi par l'utilisateur) et (100-p)/(n-1) pour les autres options (avec n le nombre d'options disponibles valables)
+Prend en paramètres la liste des options disponibles pour remplir chaque case et la proba qu'on veut appliquer à blank (p = 50 par ex, en %)
+Si blank est une option, renvoie une liste de WeightedItem avec un poids de p pour blank et (100-p)/(n-1) pour les autres options (avec n le nombre d'options disponibles valables)
 
 On applique ensuite a cette liste de valeurs pondérées la fonction WeightedRandom
 
@@ -54,5 +54,5 @@ PARALLELISATION
 on subdivise la grille pour faire les sous-grilles en meme temps, avec colonnes et lignes intermédiaires pour les rassembler 
 ex : grille de 75*75 
 on génère indépendemment (1-37)(1-37), (39-75)(1-37), (1-37)(39-75), (39-75)(39-75)
-pour les rassembler : on génère la colonne 38 grâce aux colonnes 37 et 39, et on génère la ligne 38 grâce aux lignes 37 et 39 
+puis pour les rassembler : on génère la colonne 38 grâce aux colonnes 37 et 39, et on génère la ligne 38 grâce aux lignes 37 et 39 
 
