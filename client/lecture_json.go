@@ -10,8 +10,8 @@ import (
 type Json struct {
 	Fichiert     string `json:"imaget"`
 	Orientationt string `json:"orientationt"`
-	Fichierc     string `json:"imaget"`
-	Orientationc string `json:"orientationt"`
+	Fichierc     string `json:"imagec"`
+	Orientationc string `json:"orientationc"`
 }
 
 var corresp = map[string]int{
