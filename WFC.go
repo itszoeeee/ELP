@@ -6,6 +6,7 @@ import (
 	"image/png"
 	"math/rand"
 	"os"
+	"time"
 )
 
 const DIM = 20
@@ -255,6 +256,67 @@ func checkValid(option *[]int, valid []int) {
 	// Met à jour la slice d'origine
 	*option = newOption
 }
+
+// Structure représentant un élément avec une valeur et un poids.
+type WeightedItem struct {
+	Value  string
+	Weight int
+}
+
+// Fonction pour effectuer un tirage pondéré.
+func weightedRandom(items []WeightedItem) string {
+	// Calculer la somme totale des poids.
+	totalWeight := 0
+	for _, item := range items {
+		totalWeight += item.Weight
+	}
+
+	// Générer un nombre aléatoire entre 0 et la somme des poids.
+	rand.Seed(time.Now().UnixNano())
+	randomWeight := rand.Intn(totalWeight)
+
+	// Parcourir les éléments pour trouver celui correspondant au poids généré.
+	currentWeight := 0
+	for _, item := range items {
+		currentWeight += item.Weight
+		if randomWeight < currentWeight {
+			return item.Value
+		}
+	}
+
+	return "" // Ne devrait jamais arriver si les poids sont bien définis.
+}
+
+func proba(liste []string) []WeightedItem { // fonction qui prend une liste d'options et leur associe un poids
+	var items []WeightedItem
+	p := 50                // probabilité qu'on veut de tirer "blank" (en %)
+	containsBlank := false //pour verifier si blank ets bien disponible parmi les options possibles
+	for _, elem := range liste {
+		if elem == "blank" {
+			containsBlank = true
+			break
+		}
+	}
+
+	// Parcours de la liste
+	for i := 0; i < len(liste); i++ {
+		if containsBlank {
+			if liste[i] == "blank" {
+				items = append(items, WeightedItem{"blank", p})
+			} else {
+				items = append(items, WeightedItem{liste[i], (100 - p) / (len(liste) - 1)})
+			}
+		} else {
+			items = append(items, WeightedItem{liste[i], 100 / len(liste)})
+		}
+	}
+	return items
+}
+
+// tirage aléatoire pondéré :
+// items = proba(liste) avec var liste = []string{"a", "blank", "b", "c"}  les options dispo pour chaque case
+// result = weightedRandom(items)
+// case à remplir avec result
 
 func main() {
 	// ----- Initialisation -----
