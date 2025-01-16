@@ -312,11 +312,6 @@ func proba(liste []int, p int) []WeightedItem { // fonction qui prend une liste 
 	return items
 }
 
-// tirage aléatoire pondéré :
-// items = proba(liste) avec var liste = []string{"a", "blank", "b", "c"}  les options dispo pour chaque case
-// result = weightedRandom(items)
-// case à remplir avec result
-
 func main() {
 	// ----- Initialisation -----
 	// Création de la grille

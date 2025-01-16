@@ -44,7 +44,7 @@ Renvoie un tirage aléatoire d'une des value, avec une probabilité d'apparition
 
 - func proba(liste []string)
 Prend en paramètres la liste des options disponibles pour remplir chaque case et la proba qu'on veut appliquer à blank (p = 50 par ex, en %)
-Si blank est une option, renvoie une liste de WeightedItem avec un poids de p pour blank (p choisi par l'utilisateur) et (100-p)/(n-1) pour les autres options (avec n le nombre d'options disponibles valables)
+Si blank est une option, renvoie une liste de WeightedItem avec un poids de p pour blank et (100-p)/(n-1) pour les autres options (avec n le nombre d'options disponibles valables)
 
 On applique ensuite a cette liste de valeurs pondérées la fonction WeightedRandom
 
