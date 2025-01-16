@@ -175,6 +175,65 @@ func placeImageInMatrix(dst *image.RGBA, src image.Image, gridX, gridY, cellSize
 	}
 }
 
+func client(grid []*gridItem) {
+	// Création des tuiles
+	Tiles, err := createTile()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// Dimensions de l'image de sortie
+	gridWidth, gridHeight := DIM, DIM
+	cellSize := Tiles[0].Bounds().Dx() // On suppose que la cellule fait la même taille que les images chargées
+
+	// Créer de l'image de sortie
+	outputImage := createEmptyImage(cellSize*gridWidth, cellSize*gridHeight)
+
+	// Affichage des tuiles (si la tuile est collapsed)
+	for i := 0; i < DIM; i++ {
+		for j := 0; j < DIM; j++ {
+			var cell = grid[i+j*DIM]
+			if cell.collapsed && len(cell.options) != 0 {
+				var index = cell.options[0]
+				placeImageInMatrix(outputImage, Tiles[index], i, j, cellSize)
+			}
+		}
+	}
+
+	// Exporter l'image résultante dans un fichier PNG
+	outFile, err := os.Create("output.png")
+	if err != nil {
+		fmt.Println("\n\n Erreur lors de la création de l'image de sortie:\n", err)
+		return
+	}
+	defer outFile.Close()
+
+	err = png.Encode(outFile, outputImage)
+	if err != nil {
+		fmt.Println("\n\n Erreur lors de l'exportation de l'image:\n", err)
+	}
+
+	fmt.Println("\n\n Image exportée avec succès dans output.png\n")
+}
+
+func init_grid() []*gridItem {
+	// Création de la grille
+	var grid []*gridItem
+
+	// Initialisation des éléments de la grille
+	for i := 0; i < DIM*DIM; i++ {
+		// Crée une nouvelle instance de gridItem
+		cell := &gridItem{
+			collapsed: false, // Initialisé à false
+			// Ajouter avec une  boucle (avec len(rules)) ?
+			options: []int{BLANK, T_UP, T_RIGHT, T_DOWN, T_LEFT, C_UP, C_RIGHT, C_DOWN, C_LEFT}, // Options fixes
+		}
+		grid = append(grid, cell) // Ajouter l'élément à la grille
+	}
+	return grid
+}
+
 // Fonction pour vérifier si l'option est valide
 func checkValid(option *[]int, valid []int) {
 	var newOption []int
@@ -199,35 +258,10 @@ func checkValid(option *[]int, valid []int) {
 
 func main() {
 	// ----- Initialisation -----
-
-	// Création des tuiles
-	Tiles, err := createTile()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
 	// Création de la grille
 	var grid []*gridItem
 
-	// Initialisation des éléments de la grille
-	for i := 0; i < DIM*DIM; i++ {
-		// Crée une nouvelle instance de gridItem
-		cell := &gridItem{
-			collapsed: false, // Initialisé à false
-			// Ajouter avec une  boucle (avec len(rules)) ?
-			options: []int{BLANK, T_UP, T_RIGHT, T_DOWN, T_LEFT, C_UP, C_RIGHT, C_DOWN, C_LEFT}, // Options fixes
-		}
-		grid = append(grid, cell) // Ajouter l'élément à la grille
-	}
-
-	// Dimensions de l'image de sortie
-	gridWidth, gridHeight := DIM, DIM
-	cellSize := Tiles[0].Bounds().Dx() // On suppose que la cellule fait la même taille que les images chargées
-
-	// Créer de l'image de sortie
-	outputImage := createEmptyImage(cellSize*gridWidth, cellSize*gridHeight)
-
+	grid = init_grid()
 	// ----- Fin de l'initialisation -----
 
 	// ----- Boucle principale -----
@@ -358,39 +392,20 @@ func main() {
 		}
 	}
 
-	// Affichage de la grille à retourner par le serveur TCP
-	fmt.Println("Grille:")
-	for _, v := range grid {
-		fmt.Print(v.options)
-	}
+	// TEST
+	grid[3].collapsed = false
 
-	// --- Faire une fonction ---
-	// ----- Condition d'affichage (si la tuile est collapsed) -----
-	for i := 0; i < DIM; i++ {
-		for j := 0; j < DIM; j++ {
-			var cell = grid[i+j*DIM]
-			if cell.collapsed && len(cell.options) != 0 {
-				var index = cell.options[0]
-				placeImageInMatrix(outputImage, Tiles[index], i, j, cellSize)
-			}
+	// Affichage de la grille à retourner par le serveur TCP
+	var grid_TCP []int
+	fmt.Println("\n\n Grille renvoyée par le serveur TCP:")
+	for _, v := range grid {
+		if v.collapsed {
+			grid_TCP = append(grid_TCP, v.options[0])
+		} else {
+			grid_TCP = append(grid_TCP, -1)
 		}
 	}
-	// -------------------------
 
-	// ----- Exportation de l'image -----
-
-	// Exporter l'image résultante dans un fichier PNG
-	outFile, err := os.Create("output.png")
-	if err != nil {
-		fmt.Println("\n\n Erreur lors de la création de l'image de sortie:\n", err)
-		return
-	}
-	defer outFile.Close()
-
-	err = png.Encode(outFile, outputImage)
-	if err != nil {
-		fmt.Println("\n\n Erreur lors de l'exportation de l'image:\n", err)
-	}
-
-	fmt.Println("\n\n Image exportée avec succès dans output.png\n")
+	fmt.Print(grid_TCP)
+	client(grid)
 }
