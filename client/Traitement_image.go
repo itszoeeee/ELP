@@ -34,6 +34,10 @@ func createTile_Json() (Tiles []image.Image, err error) {
 	if err != nil {
 		return Tiles, fmt.Errorf("erreur lors du chargement de l'image 'blank.png': %w", err)
 	}
+	Tiles[9], err = loadImage("cross.png")
+	if err != nil {
+		return Tiles, fmt.Errorf("erreur lors du chargement de l'image 'cross.png': %w", err)
+	}
 	orients, fichiers := ouverture_json("input.JSON")
 	TTile, err := flipImage(fichiers[0], orients[0])
 	if err != nil {
