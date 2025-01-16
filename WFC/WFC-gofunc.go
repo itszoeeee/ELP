@@ -6,10 +6,11 @@ import (
 	"image/png"
 	"math/rand"
 	"os"
+	"sync"
 )
 
-const DIM_X = 4
-const DIM_Y = 3
+const DIM_X = 5
+const DIM_Y = 5
 
 const BLANK = 0
 const T_UP = 1
@@ -115,39 +116,39 @@ func createTile() (Tiles []image.Image, err error) {
 		Tiles = append(Tiles, image.Transparent)
 	}
 
-	Tiles[0], err = loadImage("pattern/blank.png")
+	Tiles[0], err = loadImage("image/blank.png")
 	if err != nil {
 		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'blank.png': %w", err)
 	}
-	Tiles[1], err = loadImage("pattern/t_up.png")
+	Tiles[1], err = loadImage("image/t_up.png")
 	if err != nil {
 		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 't_up.png': %w", err)
 	}
-	Tiles[2], err = loadImage("pattern/t_right.png")
+	Tiles[2], err = loadImage("image/t_right.png")
 	if err != nil {
 		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 't_right.png': %w", err)
 	}
-	Tiles[3], err = loadImage("pattern/t_down.png")
+	Tiles[3], err = loadImage("image/t_down.png")
 	if err != nil {
 		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 't_down.png': %w", err)
 	}
-	Tiles[4], err = loadImage("pattern/t_left.png")
+	Tiles[4], err = loadImage("image/t_left.png")
 	if err != nil {
 		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 't_left.png': %w", err)
 	}
-	Tiles[5], err = loadImage("pattern/c_up.png")
+	Tiles[5], err = loadImage("image/c_up.png")
 	if err != nil {
 		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'c_up.png': %w", err)
 	}
-	Tiles[6], err = loadImage("pattern/c_right.png")
+	Tiles[6], err = loadImage("image/c_right.png")
 	if err != nil {
 		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'c_right.png': %w", err)
 	}
-	Tiles[7], err = loadImage("pattern/c_down.png")
+	Tiles[7], err = loadImage("image/c_down.png")
 	if err != nil {
 		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'c_down.png': %w", err)
 	}
-	Tiles[8], err = loadImage("pattern/c_left.png")
+	Tiles[8], err = loadImage("image/c_left.png")
 	if err != nil {
 		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'c_left.png': %w", err)
 	}
@@ -214,7 +215,7 @@ func client(grid [][]*gridItem) {
 		fmt.Println("\n\n Erreur lors de l'exportation de l'image:\n", err)
 	}
 
-	fmt.Println("\n\n Image exportée avec succès dans output.png\n")
+	fmt.Println("\n\nImage exportée avec succès dans output.png\n")
 }
 
 // Fonction pour vérifier si l'option est valide
@@ -257,9 +258,6 @@ func grid_init(grid *[][]*gridItem) {
 
 func WFC(grid *[][]*gridItem) {
 	//defer wg.Done() // Indiquer que la tâche est terminée (cette ligne sera exécutée juste avant que la fonction retourne et donc garantie de tuer le process)
-
-	println(len((*grid)[0]))
-	println(len(*grid))
 
 	gridCopy := *grid
 	// var step int = len(gridCopy)
@@ -389,7 +387,51 @@ func WFC(grid *[][]*gridItem) {
 	}
 }
 
+// Worker qui récupère les sous-matrices à traiter depuis un canal
+func worker(tasks <-chan func(), wg *sync.WaitGroup) {
+	for task := range tasks {
+		task() // Exécute la tâche
+	}
+}
+
+func multi_process(grid *[][]*gridItem, div_x, div_y, numWorkers int) {
+	// Calcul des tailles des sous-matrices
+	colsPerSubGrid := DIM_X / div_x
+	rowsPerSubGrid := DIM_Y / div_y
+
+	for j := 0; j < div_y; j++ {
+		for i := 0; i < div_x; i++ {
+			// Calcul des indices pour chaque sous-matrice
+			rowStart := (j * rowsPerSubGrid)
+			rowEnd := ((j + 1) * rowsPerSubGrid) - 1 // le -1 permet de créer le trou à compléter à la fin
+			colStart := i * colsPerSubGrid
+			colEnd := ((i + 1) * colsPerSubGrid) - 1
+
+			// Ajuster la dernière sous-matrice pour qu'elle couvre tout l'espace (en cas de division non parfaitement égale) elle permet également de calculer la sous grille jusqu'au bord
+			if j == div_y-1 {
+				rowEnd = DIM_Y
+			}
+			if i == div_x-1 {
+				colEnd = DIM_X
+			}
+
+			// Créer un slice pour la sous-matrice spécifique à cette tâche
+			if rowEnd > rowStart && colEnd > colStart { // On vérifie qu'on ne crée pas un slice vide
+				subGrid := make([][]*gridItem, rowEnd-rowStart)
+				for r := rowStart; r < rowEnd; r++ {
+					subGrid[r-rowStart] = (*grid)[r][colStart:colEnd]
+				}
+				WFC(&subGrid)
+				client(*grid)
+			}
+		}
+	}
+}
+
 func main() {
+	numWorkers := 2
+	div_x := 2
+	div_y := 2
 	// ----- Initialisation -----
 	// Création de la grille
 	var grid [][]*gridItem
@@ -398,8 +440,19 @@ func main() {
 	// ----- Fin de l'initialisation -----
 
 	// ----- Boucle principale -----
-	subgrid := grid[:1][0:1]
-	WFC(&subgrid)
+	multi_process(&grid, div_x, div_y, numWorkers)
+
+	// fmt.Println("\n\nGrille après multi process:")
+	// for j := 0; j < DIM_Y; j++ {
+	// 	for i := 0; i < DIM_X; i++ { // Initialiser chaque cellule dans la ligne
+	// 		cell := grid[j][i]
+	// 		print(cell.collapsed)
+	// 		println(" ", cell.options)
+	// 	}
+	// 	println()
+	// }
+
+	// WFC(&grid)
 	// ----- Fin de la boucle principale -----
 
 	// TEST
@@ -412,15 +465,17 @@ func main() {
 		var row []int                // Créer un slice vide pour chaque ligne
 		for i := 0; i < DIM_X; i++ { // Initialiser chaque cellule dans la ligne
 			cell := grid[j][i]
+			print(cell.options[0])
 			if cell.collapsed {
 				row = append(row, cell.options[0])
 			} else {
 				row = append(row, -1)
 			}
 		}
+		println()
 		grid_TCP = append(grid_TCP, row) // Ajouter la ligne à la grille
 	}
 
 	fmt.Print(grid_TCP)
-	client(grid)
+	//client(grid)
 }

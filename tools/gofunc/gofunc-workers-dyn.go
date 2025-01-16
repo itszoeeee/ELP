@@ -10,20 +10,21 @@ type gridItem struct {
 }
 
 // Fonction qui ajoute 2 à chaque élément d'une sous-matrice
-func addToSubMatrix(subMatrix [][]*gridItem, wg *sync.WaitGroup) {
+// On reçoit un pointeur vers le slice de sous-matrice pour qu'il soit modifié directement
+func addToSubMatrix(subMatrix *[][]*gridItem, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	for i := 0; i < len(subMatrix); i++ {
-		for j := 0; j < len(subMatrix[i]); j++ {
-			subMatrix[i][j].val += 2
+	for i := 0; i < len(*subMatrix); i++ {
+		for j := 0; j < len((*subMatrix)[i]); j++ {
+			(*subMatrix)[i][j].val += 2
 		}
 	}
 
 	// Affichage de la sous-matrice pendant ajout
 	fmt.Println("\nPendant ajout:")
-	for i := 0; i < len(subMatrix); i++ {
-		for j := 0; j < len(subMatrix[i]); j++ {
-			fmt.Print(subMatrix[i][j].val, " ")
+	for i := 0; i < len(*subMatrix); i++ {
+		for j := 0; j < len((*subMatrix)[i]); j++ {
+			fmt.Print((*subMatrix)[i][j].val, " ")
 		}
 		fmt.Println()
 	}
@@ -57,9 +58,9 @@ func addToMatrix(matrix [][]*gridItem, n, x, y, numWorkers int) {
 		for j := 0; j < y; j++ {
 			// Calcul des indices pour chaque sous-matrice
 			rowStart := i * rowsPerSubMatrix
-			rowEnd := (i + 1) * rowsPerSubMatrix
+			rowEnd := ((i + 1) * rowsPerSubMatrix) - 1
 			colStart := j * colsPerSubMatrix
-			colEnd := (j + 1) * colsPerSubMatrix
+			colEnd := ((j + 1) * colsPerSubMatrix) - 1
 
 			// Ajuster la dernière sous-matrice pour qu'elle couvre tout l'espace (en cas de division non parfaitement égale)
 			if i == x-1 {
@@ -70,14 +71,20 @@ func addToMatrix(matrix [][]*gridItem, n, x, y, numWorkers int) {
 			}
 
 			// Créer un slice pour la sous-matrice spécifique à cette tâche
-			subMatrix := make([][]*gridItem, rowEnd-rowStart)
-			for r := rowStart; r < rowEnd; r++ {
-				subMatrix[r-rowStart] = matrix[r][colStart:colEnd]
-			}
+			// On vérifie qu'on ne crée pas un slice vide
+			if rowEnd > rowStart && colEnd > colStart {
+				subMatrix := make([][]*gridItem, rowEnd-rowStart)
+				for r := rowStart; r < rowEnd; r++ {
+					subMatrix[r-rowStart] = matrix[r][colStart:colEnd]
+				}
 
-			// Envoyer la tâche au canal, qui sera récupéré par un worker
-			tasks <- func() {
-				addToSubMatrix(subMatrix, &wg)
+				// Envoyer la tâche au canal, qui sera récupéré par un worker
+				tasks <- func() {
+					addToSubMatrix(&subMatrix, &wg) // Remarque : c'est inutile de passer subMatrix par référence car Go le fait indirectement mais l'objectif est de se rapprocher de la fonction WFC qui elle necessite un passage par référence à cause de nextGrid
+				}
+			} else {
+				// Si la sous-matrice est invalide (taille égale à 0), on ne crée pas de tâche
+				wg.Done()
 			}
 		}
 	}
@@ -91,8 +98,8 @@ func addToMatrix(matrix [][]*gridItem, n, x, y, numWorkers int) {
 
 func main() {
 	// Dimensions de la matrice (par exemple 6x6)
-	n := 6          // Taille de la matrice
-	x := 2          // Nombre de divisions sur les lignes
+	n := 9          // Taille de la matrice
+	x := 3          // Nombre de divisions sur les lignes
 	y := 3          // Nombre de divisions sur les colonnes
 	numWorkers := 1 // Nombre de workers (goroutines) à utiliser en parallèle
 
@@ -106,7 +113,6 @@ func main() {
 		}
 		matrix = append(matrix, row)
 	}
-
 	// Affichage de la matrice avant ajout
 	fmt.Println("Avant ajout:")
 	for i := 0; i < n; i++ {
