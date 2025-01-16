@@ -287,9 +287,7 @@ func weightedRandom(items []WeightedItem) string {
 	return "" // Ne devrait jamais arriver si les poids sont bien définis.
 }
 
-var liste = []string{"a", "blank", "b", "c"}
-
-func proba(liste []string) { // fonction qui prend une liste d'options et leur associe un poids
+func proba(liste []string) []WeightedItem { // fonction qui prend une liste d'options et leur associe un poids
 	var items []WeightedItem
 	p := 50                // probabilité qu'on veut de tirer "blank" (en %)
 	containsBlank := false //pour verifier si blank ets bien disponible parmi les options possibles
@@ -308,12 +306,17 @@ func proba(liste []string) { // fonction qui prend une liste d'options et leur a
 			} else {
 				items = append(items, WeightedItem{liste[i], (100 - p) / (len(liste) - 1)})
 			}
-			return weightedRandom(items) // Effectue un tirage aléatoire pondéré
 		} else {
-			return liste
+			items = append(items, WeightedItem{liste[i], 100 / len(liste)})
 		}
 	}
+	return items
 }
+
+// tirage aléatoire pondéré :
+// items = proba(liste) avec var liste = []string{"a", "blank", "b", "c"}  les options dispo pour chaque case
+// result = weightedRandom(items)
+// case à remplir avec result
 
 func main() {
 	// ----- Initialisation -----
