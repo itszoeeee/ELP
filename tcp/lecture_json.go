@@ -21,12 +21,12 @@ var corresp = map[string]int{
 	"left":  4,
 }
 
-func ouverture_json(input_file string) []int {
+func ouverture_json(input_file string) ([]int, []string) {
 	// Ouvrir le fichier JSON
 	file, err := os.Open(input_file)
 	if err != nil {
 		fmt.Println("Erreur lors de l'ouverture du fichier:", err)
-		return nil
+		return nil, nil
 	}
 	defer file.Close()
 
@@ -34,7 +34,7 @@ func ouverture_json(input_file string) []int {
 	bxteValue, err := io.ReadAll(file)
 	if err != nil {
 		fmt.Println("Erreur lors de la lecture du fichier:", err)
-		return nil
+		return nil, nil
 	}
 
 	// Décoder le JSON dans une structure
@@ -42,13 +42,13 @@ func ouverture_json(input_file string) []int {
 	err = json.Unmarshal(bxteValue, &images) //unmarshal parse le json et stocke le resultat dans &image
 	if err != nil {
 		fmt.Println("Erreur lors du décodage JSON:", err)
-		return nil
+		return nil, nil
 	}
 
 	if images.Orientationt == "" || images.Orientationc == "" {
 		fmt.Println("Orientation invalide :", images.Orientationc, images.Orientationt)
-		return nil
+		return nil, nil
 	}
 
-	return []int{corresp[images.Orientationt], corresp[images.Orientationc]}
+	return []int{corresp[images.Orientationt], corresp[images.Orientationc]}, []string{images.Fichiert, images.Fichierc}
 }
