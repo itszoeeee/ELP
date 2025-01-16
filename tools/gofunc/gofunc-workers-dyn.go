@@ -6,18 +6,26 @@ import (
 )
 
 type gridItem struct {
-	value int
+	val int
 }
 
 // Fonction qui ajoute 2 à chaque élément d'une sous-matrice
-func addToSubMatrix(matrix []*gridItem, rowStart, rowEnd, colStart, colEnd, n int, wg *sync.WaitGroup) {
-	defer wg.Done() // Indiquer que la tâche est terminée
+func addToSubMatrix(subMatrix [][]*gridItem, wg *sync.WaitGroup) {
+	defer wg.Done()
 
-	for i := rowStart; i < rowEnd; i++ {
-		for j := colStart; j < colEnd; j++ {
-			index := i*n + j
-			matrix[index].value += 2
+	for i := 0; i < len(subMatrix); i++ {
+		for j := 0; j < len(subMatrix[i]); j++ {
+			subMatrix[i][j].val += 2
 		}
+	}
+
+	// Affichage de la sous-matrice pendant ajout
+	fmt.Println("\nPendant ajout:")
+	for i := 0; i < len(subMatrix); i++ {
+		for j := 0; j < len(subMatrix[i]); j++ {
+			fmt.Print(subMatrix[i][j].val, " ")
+		}
+		fmt.Println()
 	}
 }
 
@@ -29,11 +37,11 @@ func worker(tasks <-chan func(), wg *sync.WaitGroup) {
 }
 
 // Fonction principale qui crée le pool de workers et divise la matrice
-func addToMatrix(matrix []*gridItem, n, x, y, numWorkers int) {
+func addToMatrix(matrix [][]*gridItem, n, x, y, numWorkers int) {
 	var wg sync.WaitGroup
 	tasks := make(chan func(), x*y) // Canal pour envoyer des tâches aux workers
 
-	// Créer un pool de `numWorkers` workers (4 workers dans votre cas)
+	// Créer un pool de `numWorkers` workers
 	for i := 0; i < numWorkers; i++ {
 		go worker(tasks, &wg)
 	}
@@ -61,9 +69,15 @@ func addToMatrix(matrix []*gridItem, n, x, y, numWorkers int) {
 				colEnd = n
 			}
 
+			// Créer un slice pour la sous-matrice spécifique à cette tâche
+			subMatrix := make([][]*gridItem, rowEnd-rowStart)
+			for r := rowStart; r < rowEnd; r++ {
+				subMatrix[r-rowStart] = matrix[r][colStart:colEnd]
+			}
+
 			// Envoyer la tâche au canal, qui sera récupéré par un worker
 			tasks <- func() {
-				addToSubMatrix(matrix, rowStart, rowEnd, colStart, colEnd, n, &wg)
+				addToSubMatrix(subMatrix, &wg)
 			}
 		}
 	}
@@ -80,21 +94,24 @@ func main() {
 	n := 6          // Taille de la matrice
 	x := 2          // Nombre de divisions sur les lignes
 	y := 3          // Nombre de divisions sur les colonnes
-	numWorkers := 4 // Nombre de workers (goroutines) à utiliser en parallèle
+	numWorkers := 1 // Nombre de workers (goroutines) à utiliser en parallèle
 
-	matrix := make([]*gridItem, n*n)
+	var matrix [][]*gridItem
 
 	// Initialisation de la matrice avec des éléments
-	for i := 0; i < n*n; i++ {
-		matrix[i] = &gridItem{value: 1}
+	for i := 0; i < n; i++ {
+		var row []*gridItem
+		for j := 0; j < n; j++ {
+			row = append(row, &gridItem{val: 1})
+		}
+		matrix = append(matrix, row)
 	}
 
 	// Affichage de la matrice avant ajout
 	fmt.Println("Avant ajout:")
 	for i := 0; i < n; i++ {
 		for j := 0; j < n; j++ {
-			index := i*n + j
-			fmt.Print(matrix[index].value, " ")
+			fmt.Print(matrix[i][j].val, " ")
 		}
 		fmt.Println()
 	}
@@ -106,8 +123,7 @@ func main() {
 	fmt.Println("\nAprès ajout:")
 	for i := 0; i < n; i++ {
 		for j := 0; j < n; j++ {
-			index := i*n + j
-			fmt.Print(matrix[index].value, " ")
+			fmt.Print(matrix[i][j].val, " ")
 		}
 		fmt.Println()
 	}
