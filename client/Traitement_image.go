@@ -7,8 +7,6 @@ import (
 	"os"
 )
 
-const DIM = 20
-
 // Fonction pour ouvrir une image et la décoder
 func loadImage(path string) (image.Image, error) {
 	file, err := os.Open(path)
@@ -90,9 +88,9 @@ func client(grid [][]int, width, height int) {
 	outputImage := createEmptyImage(cellSize*gridWidth, cellSize*gridHeight)
 
 	// Affichage des tuiles (si la tuile est collapsed)
-	for i := 0; i < width; i++ {
-		for j := 0; j < height; j++ {
-			var cell = grid[i][j]
+	for j := 0; j < width; j++ {
+		for i := 0; i < height; i++ {
+			var cell = grid[j][i]
 			if cell != -1 {
 				index := cell
 				placeImageInMatrix(outputImage, Tiles[index], i, j, cellSize)
