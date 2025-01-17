@@ -39,22 +39,16 @@ func createTile_Json() (Tiles []image.Image, err error) {
 		return Tiles, fmt.Errorf("erreur lors du chargement de l'image 'cross.png': %w", err)
 	}
 	orients, fichiers := ouverture_json("input.JSON")
-	TTile, err := flipImage(fichiers[0], orients[0])
+	Tiles[1], Tiles[2], Tiles[3], Tiles[4], err = flipImage(fichiers[0], orients[0])
 	if err != nil {
 		return Tiles, fmt.Errorf("erreur lors de la premiere rotation: %w", err)
 	}
-	Tiles[1] = TTile[0]
-	Tiles[2] = TTile[1]
-	Tiles[3] = TTile[2]
-	Tiles[4] = TTile[3]
-	CTile, err := flipImage(fichiers[1], orients[1])
+
+	Tiles[5], Tiles[6], Tiles[7], Tiles[8], err = flipImage(fichiers[1], orients[1])
 	if err != nil {
 		return Tiles, fmt.Errorf("erreur lors de la premiere rotation: %w", err)
 	}
-	Tiles[5] = CTile[0]
-	Tiles[6] = CTile[1]
-	Tiles[7] = CTile[2]
-	Tiles[8] = CTile[3]
+
 	return Tiles, err
 }
 
@@ -80,8 +74,8 @@ func placeImageInMatrix(dst *image.RGBA, src image.Image, gridX, gridY, cellSize
 	}
 }
 
-func client(grid [][]int) {
-	// Création des tuiles
+func client(grid [][]int, width, height int) {
+	// Création des tuile
 	Tiles, err := createTile_Json()
 	if err != nil {
 		fmt.Println(err)
@@ -89,15 +83,15 @@ func client(grid [][]int) {
 	}
 
 	// Dimensions de l'image de sortie
-	gridWidth, gridHeight := DIM, DIM
+	gridWidth, gridHeight := width, height
 	cellSize := Tiles[0].Bounds().Dx() // On suppose que la cellule fait la même taille que les images chargées
 
 	// Créer de l'image de sortie
 	outputImage := createEmptyImage(cellSize*gridWidth, cellSize*gridHeight)
 
 	// Affichage des tuiles (si la tuile est collapsed)
-	for i := 0; i < DIM; i++ {
-		for j := 0; j < DIM; j++ {
+	for i := 0; i < width; i++ {
+		for j := 0; j < height; j++ {
 			var cell = grid[i][j]
 			if cell != -1 {
 				index := cell

@@ -13,23 +13,23 @@ var Orientations = map[int][]int{ //equivalent d'un dico pour faire correspondre
 	4: {4, 1, 2, 3},
 }
 
-func flipImage(inputFile string, orient int) ([]image.Image, error) {
+func flipImage(inputFile string, orient int) (image.Image, image.Image, image.Image, image.Image, error) {
 	// Ouvrir le fichier d'entrée
 	file, err := os.Open(inputFile)
 	if err != nil {
-		return nil, fmt.Errorf("erreur lors de l'ouverture de l'image : %v", err)
+		return nil, nil, nil, nil, fmt.Errorf("erreur lors de l'ouverture de l'image : %v", err)
 	}
 	defer file.Close()
 
 	// Décoder l'image
 	img, _, err := image.Decode(file)
 	if err != nil {
-		return nil, fmt.Errorf("erreur lors du décodage de l'image : %v", err)
+		return nil, nil, nil, nil, fmt.Errorf("erreur lors du décodage de l'image : %v", err)
 	}
 
 	// Rotation des images en fonction de param (1 pour une rotation, 2 pour deux rotations, ...)
 	if Orientations[orient] == nil {
-		return nil, fmt.Errorf("orientation invalide")
+		return nil, nil, nil, nil, fmt.Errorf("orientation invalide:")
 	}
 
 	// Trouver la liste des orientations à partir de l'orientation actuelle
@@ -45,7 +45,7 @@ func flipImage(inputFile string, orient int) ([]image.Image, error) {
 	rotated = rotate90(rotated)
 	result[orientationList[3]-1] = rotated
 
-	return result, nil
+	return result[0], result[1], result[2], result[3], nil
 }
 
 // Fonction pour effectuer une rotation de 90 degrés vers la droite
