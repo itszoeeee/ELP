@@ -205,14 +205,14 @@ func client(grid [][]*gridItem) {
 	// Exporter l'image résultante dans un fichier PNG
 	outFile, err := os.Create("output.png")
 	if err != nil {
-		fmt.Println("\n\n Erreur lors de la création de l'image de sortie:\n", err)
+		fmt.Println("\n\nErreur lors de la création de l'image de sortie:\n", err)
 		return
 	}
 	defer outFile.Close()
 
 	err = png.Encode(outFile, outputImage)
 	if err != nil {
-		fmt.Println("\n\n Erreur lors de l'exportation de l'image:\n", err)
+		fmt.Println("\n\nErreur lors de l'exportation de l'image:\n", err)
 	}
 
 	fmt.Println("\n\nImage exportée avec succès dans output.png\n")
@@ -264,8 +264,19 @@ func WFC(grid *[][]*gridItem) {
 	// var compteur int = 0
 	// var old_percent int = -1
 
-	for k := 0; k < len((*grid)[0])*len(*grid); k++ { // Boucle principale
-		//for i := 0; i < 2; i++ {
+	step := 0
+	if len((*grid)[0]) == DIM_X && len(*grid) == DIM_Y { // bricolé, à modifier car bug avec div_x = div_y = 1
+		step = 1
+	}
+	for _, row := range *grid {
+		for _, cell := range row {
+			if !cell.collapsed {
+				step++
+			}
+		}
+	}
+
+	for k := 0; k < step; k++ { // Boucle principale
 		// fmt.Println("Grille:")
 		// for _, row := range *grid {
 		// 	for _, v := range row {
@@ -295,10 +306,10 @@ func WFC(grid *[][]*gridItem) {
 		}
 
 		// Choisir aléatoirement les éléments de plus petites longueurs
-		// rand.Seed(time.Now().UnixNano())                                        // Initialiser le générateur de nombres aléatoires avec l'heure actuelle
+		// rand.Seed(time.Now().UnixNano()) // Initialiser le générateur de nombres aléatoires avec l'heure actuelle
 		var randomItem *gridItem = smallestItems[rand.Intn(len(smallestItems))] // Sélectionner une clé aléatoire parmi celles disponibles
 		randomItem.collapsed = true                                             // collapsed l'élément
-		if len(randomItem.options) != 0 {                                       // vérifie que l'élèment c'est pas vide (erreur)
+		if len(randomItem.options) != 0 {                                       // vérifie qu'il existe une option disponible, sinon affiche un carré vide
 			var pick int = randomItem.options[rand.Intn(len(randomItem.options))] // choisir un option disponible (aléatoirement)
 			randomItem.options = []int{pick}
 		}
@@ -395,6 +406,15 @@ func worker(tasks <-chan func(), wg *sync.WaitGroup) {
 }
 
 func multi_process(grid *[][]*gridItem, div_x, div_y, numWorkers int) {
+	if div_x == 0 || div_y == 0 {
+		fmt.Println("\n\nErreur : div_x et div_y ne peuvent pas être égaux à 0\n")
+		return
+	}
+	if numWorkers == 0 {
+		fmt.Println("\n\nErreur : numWorkers ne peut pas être égal à 0\n")
+		return
+	}
+
 	// Calcul des tailles des sous-matrices
 	colsPerSubGrid := DIM_X / div_x
 	rowsPerSubGrid := DIM_Y / div_y
@@ -422,16 +442,15 @@ func multi_process(grid *[][]*gridItem, div_x, div_y, numWorkers int) {
 					subGrid[r-rowStart] = (*grid)[r][colStart:colEnd]
 				}
 				WFC(&subGrid)
-				client(*grid)
 			}
 		}
 	}
 }
 
 func main() {
-	numWorkers := 2
+	numWorkers := 1
 	div_x := 2
-	div_y := 2
+	div_y := 1
 	// ----- Initialisation -----
 	// Création de la grille
 	var grid [][]*gridItem
@@ -452,11 +471,9 @@ func main() {
 	// 	println()
 	// }
 
-	// WFC(&grid)
+	WFC(&grid)
+	WFC(&grid)
 	// ----- Fin de la boucle principale -----
-
-	// TEST
-	// grid[0][3].collapsed = false
 
 	// Affichage de la grille à retourner par le serveur TCP
 	fmt.Println("\n\nGrille renvoyée par le serveur TCP:")
@@ -477,5 +494,5 @@ func main() {
 	}
 
 	fmt.Print(grid_TCP)
-	//client(grid)
+	client(grid)
 }
