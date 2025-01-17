@@ -38,11 +38,11 @@ AMELIORATION
 Régler la fréquence d'apparition du blank en lui attribuant une probabilité supérieure lors du tirage aléatoire
 /!\ Pourcentage de probabilité à régler en fonction du nombre d'options disponibles
 
-- func weightedRandom(items []WeightedItem)
+- weightedRandom(items []WeightedItem)
 Prend en paramètres une liste de WeightedItem (structure {value, weight} )
 Renvoie un tirage aléatoire d'une des value, avec une probabilité d'apparition weight 
 
-- func proba(liste []string)
+- proba(liste []string)
 Prend en paramètres la liste des options disponibles pour remplir chaque case et la proba qu'on veut appliquer à blank (p = 50 par ex, en %)
 Si blank est une option, renvoie une liste de WeightedItem avec un poids de p pour blank et (100-p)/(n-1) pour les autres options (avec n le nombre d'options disponibles valables)
 
