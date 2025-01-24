@@ -123,45 +123,45 @@ func createTile() (Tiles []image.Image, err error) {
 		Tiles = append(Tiles, image.Transparent)
 	}
 
-	Tiles[0], err = loadImage("image/blank.png")
+	Tiles[0], err = loadImage("pattern/blank.png")
 	if err != nil {
 		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'blank.png': %w", err)
 	}
-	Tiles[1], err = loadImage("image/t_up.png")
+	Tiles[1], err = loadImage("pattern/t_up.png")
 	if err != nil {
 		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 't_up.png': %w", err)
 	}
-	Tiles[2], err = loadImage("image/t_right.png")
+	Tiles[2], err = loadImage("pattern/t_right.png")
 	if err != nil {
 		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 't_right.png': %w", err)
 	}
-	Tiles[3], err = loadImage("image/t_down.png")
+	Tiles[3], err = loadImage("pattern/t_down.png")
 	if err != nil {
 		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 't_down.png': %w", err)
 	}
-	Tiles[4], err = loadImage("image/t_left.png")
+	Tiles[4], err = loadImage("pattern/t_left.png")
 	if err != nil {
 		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 't_left.png': %w", err)
 	}
-	Tiles[5], err = loadImage("image/c_up.png")
+	Tiles[5], err = loadImage("pattern/c_up.png")
 	if err != nil {
 		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'c_up.png': %w", err)
 	}
-	Tiles[6], err = loadImage("image/c_right.png")
+	Tiles[6], err = loadImage("pattern/c_right.png")
 	if err != nil {
 		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'c_right.png': %w", err)
 	}
-	Tiles[7], err = loadImage("image/c_down.png")
+	Tiles[7], err = loadImage("pattern/c_down.png")
 	if err != nil {
 		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'c_down.png': %w", err)
 	}
-	Tiles[8], err = loadImage("image/c_left.png")
+	Tiles[8], err = loadImage("pattern/c_left.png")
 	if err != nil {
 		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'c_left.png': %w", err)
 	}
-	Tiles[9], err = loadImage("image/cross.png")
+	Tiles[9], err = loadImage("pattern/cross.png")
 	if err != nil {
-		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'crosss.png': %w", err)
+		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'cross.png': %w", err)
 	}
 	return Tiles, nil
 }
