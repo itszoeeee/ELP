@@ -7,10 +7,13 @@ import (
 	"math/rand"
 	"os"
 	"sync"
+	"time"
 )
 
-const DIM_X = 10
-const DIM_Y = 10
+var gridMutex sync.Mutex // Mutex global pour protéger l'accès à la grid
+
+const DIM_X = 75
+const DIM_Y = 75
 
 const BLANK = 0
 const T_UP = 1
@@ -189,7 +192,7 @@ func placeImageInMatrix(dst *image.RGBA, src image.Image, gridX, gridY, cellSize
 	}
 }
 
-func client(grid [][]*gridItem) {
+func affichage(grid [][]*gridItem) {
 	// Création des tuiles
 	Tiles, err := createTile()
 	if err != nil {
@@ -272,18 +275,12 @@ func grid_init(grid *[][]*gridItem) {
 	}
 }
 
-func WFC(grid *[][]*gridItem) {
-	//defer wg.Done() // Indiquer que la tâche est terminée (cette ligne sera exécutée juste avant que la fonction retourne et donc garantie de tuer le process)
-
+func WFC(grid *[][]*gridItem, step int) {
 	gridCopy := *grid
 	// var step int = len(gridCopy)
 	// var compteur int = 0
 	// var old_percent int = -1
 
-	step := 0
-	if len((*grid)[0]) == DIM_X && len(*grid) == DIM_Y { // bricolé, à modifier car bug avec div_x = div_y = 1
-		step = 1
-	}
 	for _, row := range *grid {
 		for _, cell := range row {
 			if !cell.collapsed {
@@ -392,7 +389,6 @@ func WFC(grid *[][]*gridItem) {
 			nextGrid = append(nextGrid, row) // Ajouter la ligne à nextGrid
 			gridCopy = append(gridCopy, copyRow)
 		}
-
 		*grid = nextGrid // Cette affectation oblige de passer grid en tant que pointeur car le passage par référence par défaut d'un slice ne permet de créer de nouveau élément
 
 		// // Calcul du pourcentage
@@ -423,28 +419,38 @@ func worker(tasks <-chan func(), wg *sync.WaitGroup) {
 }
 
 func multi_process(grid *[][]*gridItem, div_x, div_y, numWorkers int) {
-	if div_x == 0 || div_y == 0 {
-		fmt.Println("\n\nErreur : div_x et div_y ne peuvent pas être égaux à 0\n")
-		return
-	}
-	if numWorkers == 0 {
-		fmt.Println("\n\nErreur : numWorkers ne peut pas être égal à 0\n")
-		return
-	}
+	// var wg sync.WaitGroup
+	// tasks := make(chan func(), div_x*div_y) // Canal pour envoyer des tâches aux workers
+
+	// // Créer un pool de `numWorkers` workers
+	// for i := 0; i < numWorkers; i++ {
+	// 	go worker(tasks, &wg) // création de go function
+	// }
+
+	// // // Diviser la matrice en div_x * div_y sous-matrices et envoyer les tâches aux workers
+	// wg.Add(div_x * div_y)
 
 	// Calcul des tailles des sous-matrices
 	colsPerSubGrid := DIM_X / div_x
 	rowsPerSubGrid := DIM_Y / div_y
 
+	// c := make(chan *[][]*gridItem)
+
 	for j := 0; j < div_y; j++ {
 		for i := 0; i < div_x; i++ {
 			// Calcul des indices pour chaque sous-matrice
-			rowStart := (j * rowsPerSubGrid)
+			rowStart := (j * rowsPerSubGrid) + 1
 			rowEnd := ((j + 1) * rowsPerSubGrid) - 1 // le -1 permet de créer le trou à compléter à la fin
-			colStart := i * colsPerSubGrid
+			colStart := (i * colsPerSubGrid) + 1
 			colEnd := ((i + 1) * colsPerSubGrid) - 1
 
-			// Ajuster la dernière sous-matrice pour qu'elle couvre tout l'espace (en cas de division non parfaitement égale) elle permet également de calculer la sous grille jusqu'au bord
+			// Ajuster la première et la dernière sous-matrice pour qu'elle couvre tout l'espace (en cas de division non parfaitement égale) elle permet également de calculer la sous grille jusqu'au bord
+			if j == 0 {
+				rowStart = 0
+			}
+			if i == 0 {
+				colStart = 0
+			}
 			if j == div_y-1 {
 				rowEnd = DIM_Y
 			}
@@ -458,58 +464,86 @@ func multi_process(grid *[][]*gridItem, div_x, div_y, numWorkers int) {
 				for r := rowStart; r < rowEnd; r++ {
 					subGrid[r-rowStart] = (*grid)[r][colStart:colEnd]
 				}
-				WFC(&subGrid)
+
+				//subGridCopy := &subGrid
+				go WFC(&subGrid, 0) // Remarque : c'est inutile de passer subGrid par référence car Go le fait indirectement mais l'objectif est de se rapprocher de la fonction WFC qui elle necessite un passage par référence à cause de nextGrid
+				//subGrid <- c
+				// gridMutex.Unlock()       // Déverrouiller après l'accès
+
+				// wg.Add(1) // Ajout du compteur avant d'envoyer la tâche au canal
+				// // Envoyer la tâche au canal, qui sera récupéré par un worker
+				// tasks <- func() {
+				// 	defer wg.Done()
+
+				// 	// Protéger l'accès à la grid partagée avec le Mutex
+				// 	gridMutex.Lock()      // Verrouiller avant l'accès
+				// 	WFC(&subGrid, 0, &wg) // Remarque : c'est inutile de passer subGrid par référence car Go le fait indirectement mais l'objectif est de se rapprocher de la fonction WFC qui elle necessite un passage par référence à cause de nextGrid
+				// 	gridMutex.Unlock()    // Déverrouiller après l'accès
+				// }
+				affichage(*grid)
+				time.Sleep(time.Millisecond)
 			}
 		}
 	}
+
+	// wg.Wait()    // Attendre que toutes les tâches soient terminées
+	// close(tasks) // Fermer le canal des tâches une fois qu'elles sont toutes envoyées
 }
 
 func main() {
-	numWorkers := 1
-	div_x := 2
-	div_y := 1
-	// ----- Initialisation -----
-	// Création de la grille
-	var grid [][]*gridItem
-	// Initialisation des éléments de la grille
-	grid_init(&grid)
-	// ----- Fin de l'initialisation -----
+	numWorkers := 9
+	div_x := 3
+	div_y := 3
 
-	// ----- Boucle principale -----
-	multi_process(&grid, div_x, div_y, numWorkers)
-
-	// fmt.Println("\n\nGrille après multi process:")
-	// for j := 0; j < DIM_Y; j++ {
-	// 	for i := 0; i < DIM_X; i++ { // Initialiser chaque cellule dans la ligne
-	// 		cell := grid[j][i]
-	// 		print(cell.collapsed)
-	// 		println(" ", cell.options)
-	// 	}
-	// 	println()
-	// }
-
-	WFC(&grid)
-	WFC(&grid)
-	// ----- Fin de la boucle principale -----
-
-	// Affichage de la grille à retourner par le serveur TCP
-	fmt.Println("\n\nGrille renvoyée par le serveur TCP:")
-	var grid_TCP [][]int
-	for j := 0; j < DIM_Y; j++ {
-		var row []int                // Créer un slice vide pour chaque ligne
-		for i := 0; i < DIM_X; i++ { // Initialiser chaque cellule dans la ligne
-			cell := grid[j][i]
-			print(cell.options[0])
-			if cell.collapsed {
-				row = append(row, cell.options[0])
-			} else {
-				row = append(row, -1)
-			}
-		}
-		println()
-		grid_TCP = append(grid_TCP, row) // Ajouter la ligne à la grille
+	if div_x <= 0 || div_y <= 0 {
+		fmt.Println("\n\nErreur : div_x et div_y doivent être strictement positifs\n")
 	}
+	if numWorkers == 0 {
+		fmt.Println("\n\nErreur : numWorkers doit être strictement positif\n")
+	} else {
+		// ----- Initialisation -----
+		var grid [][]*gridItem // Création de la grille
+		grid_init(&grid)       // Initialisation des éléments de la grille
+		// ----- Fin de l'initialisation -----
 
-	fmt.Print(grid_TCP)
-	client(grid)
+		// ----- Boucle principale -----
+		if div_x == 1 && div_y == 1 {
+			WFC(&grid, 0)
+		} else {
+			multi_process(&grid, div_x, div_y, numWorkers)
+			WFC(&grid, 1)
+		}
+		// ----- Fin de la boucle principale -----
+
+		// fmt.Println("\n\nGrille après multi process:")
+		// for j := 0; j < DIM_Y; j++ {
+		// 	for i := 0; i < DIM_X; i++ { // Initialiser chaque cellule dans la ligne
+		// 		cell := grid[j][i]
+		// 		print(cell.collapsed)
+		// 		println(" ", cell.options)
+		// 	}
+		// 	println()
+		// }
+
+		// Affichage de la grille à retourner par le serveur TCP
+		fmt.Println("\n\nGrille renvoyée par le serveur TCP:")
+		var grid_TCP [][]int
+		for j := 0; j < DIM_Y; j++ {
+			var row []int                // Créer un slice vide pour chaque ligne
+			for i := 0; i < DIM_X; i++ { // Initialiser chaque cellule dans la ligne
+				cell := grid[j][i]
+				//print(cell.options[0])
+				if cell.collapsed {
+					row = append(row, cell.options...)
+				} else {
+					row = append(row, -1)
+				}
+			}
+			println()
+			grid_TCP = append(grid_TCP, row) // Ajouter la ligne à la grille
+		}
+
+		fmt.Print(grid_TCP)
+		// affichage(grid)
+	}
 }
