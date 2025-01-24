@@ -9,8 +9,8 @@ import (
 	"sync"
 )
 
-const DIM_X = 5
-const DIM_Y = 5
+const DIM_X = 10
+const DIM_Y = 10
 
 const BLANK = 0
 const T_UP = 1
@@ -21,6 +21,7 @@ const C_UP = 5
 const C_RIGHT = 6
 const C_DOWN = 7
 const C_LEFT = 8
+const CROSS = 9
 
 // Définir le tableau de règles
 var rules = [][][]int{
@@ -33,59 +34,66 @@ var rules = [][][]int{
 	},
 	// T_UP
 	{
-		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT}, // north
-		{T_UP, T_DOWN, T_LEFT, C_UP},              // east
-		{BLANK, T_DOWN, C_DOWN, C_LEFT},           // south
-		{T_UP, T_RIGHT, T_DOWN, C_RIGHT, C_DOWN},  // west
+		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT, CROSS}, // north
+		{T_UP, T_DOWN, T_LEFT, C_UP, CROSS},              // east
+		{BLANK, T_DOWN, C_DOWN, C_LEFT},                  // south
+		{T_UP, T_RIGHT, T_DOWN, C_RIGHT, C_DOWN, CROSS},  // west
 	},
 	// T_RIGHT
 	{
-		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT}, // north
-		{T_UP, T_DOWN, T_LEFT, C_UP, C_LEFT},      // east
-		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT},    // south
-		{BLANK, T_LEFT, C_UP, C_LEFT},             // west
+		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT, CROSS}, // north
+		{T_UP, T_DOWN, T_LEFT, C_UP, C_LEFT, CROSS},      // east
+		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT, CROSS},    // south
+		{BLANK, T_LEFT, C_UP, C_LEFT},                    // west
 	},
 	// T_DOWN
 	{
-		{BLANK, T_UP, C_UP, C_RIGHT},             // north
-		{T_UP, T_DOWN, T_LEFT, C_UP, C_LEFT},     // east
-		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT},   // south
-		{T_UP, T_RIGHT, T_DOWN, C_RIGHT, C_DOWN}, // west
+		{BLANK, T_UP, C_UP, C_RIGHT},                    // north
+		{T_UP, T_DOWN, T_LEFT, C_UP, C_LEFT, CROSS},     // east
+		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT, CROSS},   // south
+		{T_UP, T_RIGHT, T_DOWN, C_RIGHT, C_DOWN, CROSS}, // west
 	},
 	// T_LEFT
 	{
-		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT}, // north
-		{BLANK, T_RIGHT, C_RIGHT, C_DOWN},         // east
-		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT},    // south
-		{T_UP, T_RIGHT, T_DOWN, C_RIGHT, C_DOWN},  // west
+		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT, CROSS}, // north
+		{BLANK, T_RIGHT, C_RIGHT, C_DOWN},                // east
+		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT, CROSS},    // south
+		{T_UP, T_RIGHT, T_DOWN, C_RIGHT, C_DOWN, CROSS},  // west
 	},
 	// C_UP
 	{
-		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT}, // north
-		{BLANK, T_RIGHT, C_RIGHT, C_DOWN},         // east
-		{BLANK, T_DOWN, C_DOWN, C_LEFT},           // south
-		{T_UP, T_RIGHT, T_DOWN, C_RIGHT, C_DOWN},  // west
+		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT, CROSS}, // north
+		{BLANK, T_RIGHT, C_RIGHT, C_DOWN},                // east
+		{BLANK, T_DOWN, C_DOWN, C_LEFT},                  // south
+		{T_UP, T_RIGHT, T_DOWN, C_RIGHT, C_DOWN, CROSS},  // west
 	},
 	// C_RIGHT
 	{
-		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT}, // north
-		{T_UP, T_DOWN, T_LEFT, C_UP, C_LEFT},      // east
-		{BLANK, T_DOWN, C_DOWN, C_LEFT},           // south
-		{BLANK, T_LEFT, C_UP, C_LEFT},             // west
+		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT, CROSS}, // north
+		{T_UP, T_DOWN, T_LEFT, C_UP, C_LEFT, CROSS},      // east
+		{BLANK, T_DOWN, C_DOWN, C_LEFT},                  // south
+		{BLANK, T_LEFT, C_UP, C_LEFT},                    // west
 	},
 	// C_DOWN
 	{
-		{BLANK, T_UP, C_UP, C_RIGHT},           // north
-		{T_UP, T_DOWN, T_LEFT, C_UP, C_LEFT},   // east
-		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT}, // south
-		{BLANK, T_LEFT, C_UP, C_LEFT},          // west
+		{BLANK, T_UP, C_UP, C_RIGHT},                  // north
+		{T_UP, T_DOWN, T_LEFT, C_UP, C_LEFT, CROSS},   // east
+		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT, CROSS}, // south
+		{BLANK, T_LEFT, C_UP, C_LEFT},                 // west
 	},
 	// C_LEFT
 	{
-		{BLANK, T_UP, C_UP, C_RIGHT},             // north
-		{BLANK, T_RIGHT, C_RIGHT, C_DOWN},        // east
-		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT},   // south
-		{T_UP, T_RIGHT, T_DOWN, C_RIGHT, C_DOWN}, // west
+		{BLANK, T_UP, C_UP, C_RIGHT},                    // north
+		{BLANK, T_RIGHT, C_RIGHT, C_DOWN},               // east
+		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT, CROSS},   // south
+		{T_UP, T_RIGHT, T_DOWN, C_RIGHT, C_DOWN, CROSS}, // west
+	},
+	//CROSS
+	{
+		{T_DOWN, T_RIGHT, T_LEFT, C_LEFT, C_DOWN}, //north
+		{T_LEFT, T_UP, T_DOWN, C_LEFT, C_UP},      //east
+		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT},    //south
+		{T_RIGHT, T_UP, T_DOWN, C_RIGHT, C_DOWN},  //west
 	},
 }
 
@@ -151,6 +159,10 @@ func createTile() (Tiles []image.Image, err error) {
 	Tiles[8], err = loadImage("image/c_left.png")
 	if err != nil {
 		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'c_left.png': %w", err)
+	}
+	Tiles[9], err = loadImage("image/cross.png")
+	if err != nil {
+		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'crosss.png': %w", err)
 	}
 	return Tiles, nil
 }
@@ -245,10 +257,14 @@ func grid_init(grid *[][]*gridItem) {
 	for j := 0; j < DIM_Y; j++ {
 		var row []*gridItem          // Créer un slice vide pour chaque ligne
 		for i := 0; i < DIM_X; i++ { // Initialiser chaque cellule dans la ligne
+			// Options par défaut
+			var default_option []int
+			for k := 0; k < len(rules); k++ {
+				default_option = append(default_option, k)
+			}
 			cell := &gridItem{ // Créer une nouvelle instance de gridItem
 				collapsed: false, // Initialisé à false
-				// Options par défaut
-				options: []int{BLANK, T_UP, T_RIGHT, T_DOWN, T_LEFT, C_UP, C_RIGHT, C_DOWN, C_LEFT},
+				options:   default_option,
 			}
 			row = append(row, cell) // Ajouter la cellule à la ligne
 		}
@@ -325,9 +341,10 @@ func WFC(grid *[][]*gridItem) {
 					row = append(row, cell) // Si la cellule est "collapsed", on garde la même cellule
 				} else {
 					copyRow = append(copyRow, cell)
-
-					var cell_option = []int{BLANK, T_UP, T_RIGHT, T_DOWN, T_LEFT, C_UP, C_RIGHT, C_DOWN, C_LEFT} // Ajouter avec une  boucle (avec len(rules)) ?
-
+					var cell_option []int
+					for k := 0; k < len(rules)-1; k++ {
+						cell_option = append(cell_option, k)
+					}
 					// Look north
 					if j > 0 {
 						var north = (*grid)[j-1][i]
