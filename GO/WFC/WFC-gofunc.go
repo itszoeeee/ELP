@@ -7,13 +7,12 @@ import (
 	"math/rand"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
-var gridMutex sync.Mutex // Mutex global pour protéger l'accès à la grid
-
-const DIM_X = 75
-const DIM_Y = 75
+const DIM_X = 50
+const DIM_Y = 50
 
 const BLANK = 0
 const T_UP = 1
@@ -25,78 +24,94 @@ const C_RIGHT = 6
 const C_DOWN = 7
 const C_LEFT = 8
 const CROSS = 9
+const F_H = 10
+const F_V = 11
 
 // Définir le tableau de règles
 var rules = [][][]int{
 	// BLANK
 	{
-		{BLANK, T_UP, C_UP, C_RIGHT},      // north
-		{BLANK, T_RIGHT, C_RIGHT, C_DOWN}, // east
-		{BLANK, T_DOWN, C_DOWN, C_LEFT},   // south
-		{BLANK, T_LEFT, C_UP, C_LEFT},     // west
+		{BLANK, T_UP, C_UP, C_RIGHT, F_H},      // north
+		{BLANK, T_RIGHT, C_RIGHT, C_DOWN, F_V}, // east
+		{BLANK, T_DOWN, C_DOWN, C_LEFT, F_H},   // south
+		{BLANK, T_LEFT, C_UP, C_LEFT, F_V},     // west
 	},
 	// T_UP
 	{
-		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT, CROSS}, // north
-		{T_UP, T_DOWN, T_LEFT, C_UP, CROSS},              // east
-		{BLANK, T_DOWN, C_DOWN, C_LEFT},                  // south
-		{T_UP, T_RIGHT, T_DOWN, C_RIGHT, C_DOWN, CROSS},  // west
+		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT, CROSS, F_V}, // north
+		{T_UP, T_DOWN, T_LEFT, C_UP, CROSS, F_H},              // east
+		{BLANK, T_DOWN, C_DOWN, C_LEFT, F_H},                  // south
+		{T_UP, T_RIGHT, T_DOWN, C_RIGHT, C_DOWN, CROSS, F_H},  // west
 	},
 	// T_RIGHT
 	{
-		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT, CROSS}, // north
-		{T_UP, T_DOWN, T_LEFT, C_UP, C_LEFT, CROSS},      // east
-		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT, CROSS},    // south
-		{BLANK, T_LEFT, C_UP, C_LEFT},                    // west
+		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT, CROSS, F_V}, // north
+		{T_UP, T_DOWN, T_LEFT, C_UP, C_LEFT, CROSS, F_H},      // east
+		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT, CROSS, F_V},    // south
+		{BLANK, T_LEFT, C_UP, C_LEFT, F_V},                    // west
 	},
 	// T_DOWN
 	{
-		{BLANK, T_UP, C_UP, C_RIGHT},                    // north
-		{T_UP, T_DOWN, T_LEFT, C_UP, C_LEFT, CROSS},     // east
-		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT, CROSS},   // south
-		{T_UP, T_RIGHT, T_DOWN, C_RIGHT, C_DOWN, CROSS}, // west
+		{BLANK, T_UP, C_UP, C_RIGHT, F_H},                    // north
+		{T_UP, T_DOWN, T_LEFT, C_UP, C_LEFT, CROSS, F_H},     // east
+		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT, CROSS, F_V},   // south
+		{T_UP, T_RIGHT, T_DOWN, C_RIGHT, C_DOWN, CROSS, F_H}, // west
 	},
 	// T_LEFT
 	{
-		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT, CROSS}, // north
-		{BLANK, T_RIGHT, C_RIGHT, C_DOWN},                // east
-		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT, CROSS},    // south
-		{T_UP, T_RIGHT, T_DOWN, C_RIGHT, C_DOWN, CROSS},  // west
+		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT, CROSS, F_V}, // north
+		{BLANK, T_RIGHT, C_RIGHT, C_DOWN, F_V},                // east
+		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT, CROSS, F_V},    // south
+		{T_UP, T_RIGHT, T_DOWN, C_RIGHT, C_DOWN, CROSS, F_H},  // west
 	},
 	// C_UP
 	{
-		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT, CROSS}, // north
-		{BLANK, T_RIGHT, C_RIGHT, C_DOWN},                // east
-		{BLANK, T_DOWN, C_DOWN, C_LEFT},                  // south
-		{T_UP, T_RIGHT, T_DOWN, C_RIGHT, C_DOWN, CROSS},  // west
+		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT, CROSS, F_V}, // north
+		{BLANK, T_RIGHT, C_RIGHT, C_DOWN, F_V},                // east
+		{BLANK, T_DOWN, C_DOWN, C_LEFT, F_H},                  // south
+		{T_UP, T_RIGHT, T_DOWN, C_RIGHT, C_DOWN, CROSS, F_H},  // west
 	},
 	// C_RIGHT
 	{
-		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT, CROSS}, // north
-		{T_UP, T_DOWN, T_LEFT, C_UP, C_LEFT, CROSS},      // east
-		{BLANK, T_DOWN, C_DOWN, C_LEFT},                  // south
-		{BLANK, T_LEFT, C_UP, C_LEFT},                    // west
+		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT, CROSS, F_V}, // north
+		{T_UP, T_DOWN, T_LEFT, C_UP, C_LEFT, CROSS, F_H},      // east
+		{BLANK, T_DOWN, C_DOWN, C_LEFT, F_H},                  // south
+		{BLANK, T_LEFT, C_UP, C_LEFT, F_V},                    // west
 	},
 	// C_DOWN
 	{
-		{BLANK, T_UP, C_UP, C_RIGHT},                  // north
-		{T_UP, T_DOWN, T_LEFT, C_UP, C_LEFT, CROSS},   // east
-		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT, CROSS}, // south
-		{BLANK, T_LEFT, C_UP, C_LEFT},                 // west
+		{BLANK, T_UP, C_UP, C_RIGHT, F_H},                  // north
+		{T_UP, T_DOWN, T_LEFT, C_UP, C_LEFT, CROSS, F_H},   // east
+		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT, CROSS, F_V}, // south
+		{BLANK, T_LEFT, C_UP, C_LEFT, F_V},                 // west
 	},
 	// C_LEFT
 	{
-		{BLANK, T_UP, C_UP, C_RIGHT},                    // north
-		{BLANK, T_RIGHT, C_RIGHT, C_DOWN},               // east
-		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT, CROSS},   // south
-		{T_UP, T_RIGHT, T_DOWN, C_RIGHT, C_DOWN, CROSS}, // west
+		{BLANK, T_UP, C_UP, C_RIGHT, F_H},                    // north
+		{BLANK, T_RIGHT, C_RIGHT, C_DOWN, F_V},               // east
+		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT, CROSS, F_V},   // south
+		{T_UP, T_RIGHT, T_DOWN, C_RIGHT, C_DOWN, CROSS, F_H}, // west
 	},
 	//CROSS
 	{
-		{T_DOWN, T_RIGHT, T_LEFT, C_LEFT, C_DOWN}, //north
-		{T_LEFT, T_UP, T_DOWN, C_LEFT, C_UP},      //east
-		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT},    //south
-		{T_RIGHT, T_UP, T_DOWN, C_RIGHT, C_DOWN},  //west
+		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT, F_V}, //north
+		{T_UP, T_DOWN, T_LEFT, C_UP, C_LEFT, F_H},      //east
+		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT, F_V},    //south
+		{T_UP, T_RIGHT, T_DOWN, C_RIGHT, C_DOWN, F_H},  //west
+	},
+	//F_H
+	{
+		{BLANK, T_UP, C_UP, C_RIGHT},                    //north
+		{T_UP, T_DOWN, T_LEFT, C_UP, C_LEFT, CROSS},     //east
+		{BLANK, T_DOWN, C_DOWN, C_LEFT},                 //south
+		{T_UP, T_RIGHT, T_DOWN, C_RIGHT, C_DOWN, CROSS}, //west
+	},
+	//F_V
+	{
+		{T_RIGHT, T_DOWN, T_LEFT, C_DOWN, C_LEFT, CROSS}, //north
+		{BLANK, T_RIGHT, C_RIGHT, C_DOWN},                //east
+		{T_UP, T_RIGHT, T_LEFT, C_UP, C_RIGHT, CROSS},    //south
+		{BLANK, T_LEFT, C_UP, C_LEFT},                    //west
 	},
 }
 
@@ -104,6 +119,8 @@ type gridItem struct {
 	collapsed bool  // Champ pour "collapsed"
 	options   []int // Un tableau de tableaux d'entiers
 }
+
+var completedCells int64 = 0
 
 // Fonction pour ouvrir une image et la décoder
 func loadImage(path string) (image.Image, error) {
@@ -165,7 +182,15 @@ func createTile() (Tiles []image.Image, err error) {
 	}
 	Tiles[9], err = loadImage("GO/pattern/cross.png")
 	if err != nil {
-		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'crosss.png': %w", err)
+		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'cross.png': %w", err)
+	}
+	Tiles[10], err = loadImage("GO/pattern/f_h.png")
+	if err != nil {
+		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'f_h.png': %w", err)
+	}
+	Tiles[11], err = loadImage("GO/pattern/f_v.png")
+	if err != nil {
+		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'f_v.png': %w", err)
 	}
 	return Tiles, nil
 }
@@ -256,8 +281,7 @@ func checkValid(option *[]int, valid []int) {
 }
 
 func grid_init(grid *[][]*gridItem) {
-	// Initialiser chaque ligne de la grille
-	for j := 0; j < DIM_Y; j++ {
+	for j := 0; j < DIM_Y; j++ { // Initialiser chaque ligne de la grille
 		var row []*gridItem          // Créer un slice vide pour chaque ligne
 		for i := 0; i < DIM_X; i++ { // Initialiser chaque cellule dans la ligne
 			// Options par défaut
@@ -277,9 +301,6 @@ func grid_init(grid *[][]*gridItem) {
 
 func WFC(grid *[][]*gridItem, step int) {
 	gridCopy := *grid
-	// var step int = len(gridCopy)
-	// var compteur int = 0
-	// var old_percent int = -1
 
 	for _, row := range *grid {
 		for _, cell := range row {
@@ -389,62 +410,42 @@ func WFC(grid *[][]*gridItem, step int) {
 			nextGrid = append(nextGrid, row) // Ajouter la ligne à nextGrid
 			gridCopy = append(gridCopy, copyRow)
 		}
-		*grid = nextGrid // Cette affectation oblige de passer grid en tant que pointeur car le passage par référence par défaut d'un slice ne permet de créer de nouveau élément
-
-		// // Calcul du pourcentage
-		// var percent int = (compteur * 101) / step
-		// compteur++
-
-		// // Affichage de la barre de chargement
-		// if old_percent != percent {
-		// 	fmt.Printf("\r[") // permet de revenir au début de la ligne sans en ajouter une nouvelle, afin de mettre à jour la même ligne de la console.
-		// 	for j := 0; j < 50; j++ {
-		// 		if j < percent/2 {
-		// 			fmt.Print("=")
-		// 		} else {
-		// 			fmt.Print(" ")
-		// 		}
-		// 	}
-		// 	fmt.Printf("] %d%%", percent)
-		// 	old_percent = percent
-		// }
+		*grid = nextGrid                    // Cette affectation oblige de passer grid en tant que pointeur car le passage par référence par défaut d'un slice ne permet de créer de nouveau élément
+		atomic.AddInt64(&completedCells, 1) // Incrémente le nombre d'itération pour le calcul du pourcentage
 	}
 }
 
-// Worker qui récupère les sous-matrices à traiter depuis un canal
+// Worker qui récupère les sous-grilles à traiter depuis un canal
 func worker(tasks <-chan func(), wg *sync.WaitGroup) {
 	for task := range tasks {
 		task() // Exécute la tâche
+		wg.Done()
 	}
 }
 
 func multi_process(grid *[][]*gridItem, div_x, div_y, numWorkers int) {
-	// var wg sync.WaitGroup
-	// tasks := make(chan func(), div_x*div_y) // Canal pour envoyer des tâches aux workers
+	var wg sync.WaitGroup
+	wg.Add(div_x * div_y)                   // Diviser la matrice en div_x * div_y sous-grilles et envoyer les tâches aux workers
+	tasks := make(chan func(), div_x*div_y) // Canal pour envoyer des tâches aux workers
 
-	// // Créer un pool de `numWorkers` workers
-	// for i := 0; i < numWorkers; i++ {
-	// 	go worker(tasks, &wg) // création de go function
-	// }
+	// Créer un pool de workers
+	for i := 0; i < numWorkers; i++ {
+		go worker(tasks, &wg) // création de go function
+	}
 
-	// // // Diviser la matrice en div_x * div_y sous-matrices et envoyer les tâches aux workers
-	// wg.Add(div_x * div_y)
-
-	// Calcul des tailles des sous-matrices
+	// Calcul des tailles des sous-grilles
 	colsPerSubGrid := DIM_X / div_x
 	rowsPerSubGrid := DIM_Y / div_y
-
-	// c := make(chan *[][]*gridItem)
 
 	for j := 0; j < div_y; j++ {
 		for i := 0; i < div_x; i++ {
 			// Calcul des indices pour chaque sous-matrice
-			rowStart := (j * rowsPerSubGrid) + 1
-			rowEnd := ((j + 1) * rowsPerSubGrid) - 1 // le -1 permet de créer le trou à compléter à la fin
-			colStart := (i * colsPerSubGrid) + 1
-			colEnd := ((i + 1) * colsPerSubGrid) - 1
+			rowStart := (j * rowsPerSubGrid) + 2 // permet de créer la séparation entre les sous-grilles à compléter
+			rowEnd := ((j + 1) * rowsPerSubGrid) - 2
+			colStart := (i * colsPerSubGrid) + 2
+			colEnd := ((i + 1) * colsPerSubGrid) - 2
 
-			// Ajuster la première et la dernière sous-matrice pour qu'elle couvre tout l'espace (en cas de division non parfaitement égale) elle permet également de calculer la sous grille jusqu'au bord
+			// Ajuster la première et la dernière sous-matrice pour qu'elle couvre tout l'espace (en cas de division non parfaitement égale) elle permet également de calculer les sous grille jusqu'au bordure de la grande
 			if j == 0 {
 				rowStart = 0
 			}
@@ -465,42 +466,54 @@ func multi_process(grid *[][]*gridItem, div_x, div_y, numWorkers int) {
 					subGrid[r-rowStart] = (*grid)[r][colStart:colEnd]
 				}
 
-				//subGridCopy := &subGrid
-				go WFC(&subGrid, 0) // Remarque : c'est inutile de passer subGrid par référence car Go le fait indirectement mais l'objectif est de se rapprocher de la fonction WFC qui elle necessite un passage par référence à cause de nextGrid
-				//subGrid <- c
-				// gridMutex.Unlock()       // Déverrouiller après l'accès
-
-				// wg.Add(1) // Ajout du compteur avant d'envoyer la tâche au canal
-				// // Envoyer la tâche au canal, qui sera récupéré par un worker
-				// tasks <- func() {
-				// 	defer wg.Done()
-
-				// 	// Protéger l'accès à la grid partagée avec le Mutex
-				// 	gridMutex.Lock()      // Verrouiller avant l'accès
-				// 	WFC(&subGrid, 0, &wg) // Remarque : c'est inutile de passer subGrid par référence car Go le fait indirectement mais l'objectif est de se rapprocher de la fonction WFC qui elle necessite un passage par référence à cause de nextGrid
-				// 	gridMutex.Unlock()    // Déverrouiller après l'accès
-				// }
-				affichage(*grid)
-				time.Sleep(time.Millisecond)
+				// Envoyer la tâche au canal, qui sera récupéré par un worker
+				tasks <- func() {
+					WFC(&subGrid, 0) // Remarque : c'est inutile de passer subGrid par référence car Go le fait indirectement mais l'objectif est de se rapprocher de la fonction WFC qui elle necessite un passage par référence à cause de nextGrid
+				}
 			}
 		}
 	}
-
-	// wg.Wait()    // Attendre que toutes les tâches soient terminées
-	// close(tasks) // Fermer le canal des tâches une fois qu'elles sont toutes envoyées
+	wg.Wait()    // Attendre que toutes les tâches soient terminées
+	close(tasks) // Fermer le canal des tâches une fois qu'elles sont toutes envoyées
 }
 
-func main() {
-	numWorkers := 9
-	div_x := 3
-	div_y := 3
+// Fonction de rapporteur de progression
+func progressReporter(stopChan <-chan struct{}) {
+	var lastPercentage = -1
 
+	for {
+		select {
+		case <-time.After(time.Millisecond):
+			percentage := int((atomic.LoadInt64(&completedCells) * 101) / (DIM_X * DIM_Y)) // converstion en int
+			if percentage != lastPercentage {
+				fmt.Printf("\r[") // permet de revenir au début de la ligne sans en ajouter une nouvelle, afin de mettre à jour la même ligne de la console.
+				for j := 0; j < 50; j++ {
+					if j < percentage/2 {
+						fmt.Print("=")
+					} else {
+						fmt.Print(" ")
+					}
+				}
+				fmt.Printf("] %d%%", percentage)
+				lastPercentage = percentage
+			}
+		case <-stopChan:
+			fmt.Printf("\nGénération de l'image terminée")
+			return
+		}
+	}
+}
+
+func app(numWorkers, div_x, div_y int) {
 	if div_x <= 0 || div_y <= 0 {
 		fmt.Println("\n\nErreur : div_x et div_y doivent être strictement positifs\n")
 	}
 	if numWorkers == 0 {
 		fmt.Println("\n\nErreur : numWorkers doit être strictement positif\n")
 	} else {
+		stopChan := make(chan struct{}) // Créer un canal pour arrêter le rapporteur de progression
+		go progressReporter(stopChan)   // Lancer le calcul de progression
+
 		// ----- Initialisation -----
 		var grid [][]*gridItem // Création de la grille
 		grid_init(&grid)       // Initialisation des éléments de la grille
@@ -515,35 +528,32 @@ func main() {
 		}
 		// ----- Fin de la boucle principale -----
 
-		// fmt.Println("\n\nGrille après multi process:")
-		// for j := 0; j < DIM_Y; j++ {
-		// 	for i := 0; i < DIM_X; i++ { // Initialiser chaque cellule dans la ligne
-		// 		cell := grid[j][i]
-		// 		print(cell.collapsed)
-		// 		println(" ", cell.options)
-		// 	}
-		// 	println()
-		// }
-
-		// Affichage de la grille à retourner par le serveur TCP
-		fmt.Println("\n\nGrille renvoyée par le serveur TCP:")
+		// Grille à retourner par le serveur TCP
 		var grid_TCP [][]int
 		for j := 0; j < DIM_Y; j++ {
 			var row []int                // Créer un slice vide pour chaque ligne
 			for i := 0; i < DIM_X; i++ { // Initialiser chaque cellule dans la ligne
 				cell := grid[j][i]
-				//print(cell.options[0])
 				if cell.collapsed {
 					row = append(row, cell.options...)
 				} else {
 					row = append(row, -1)
 				}
 			}
-			println()
 			grid_TCP = append(grid_TCP, row) // Ajouter la ligne à la grille
 		}
 
-		fmt.Print(grid_TCP)
+		close(stopChan)                    // Ferme le canal de l'avancement
+		time.Sleep(100 * time.Millisecond) // Attendre que le canal de l'avancement soit bien fermé
+
 		// affichage(grid)
 	}
+}
+
+func main() {
+	numWorkers := 9
+	div_x := 3
+	div_y := 3
+
+	app(numWorkers, div_x, div_y)
 }
