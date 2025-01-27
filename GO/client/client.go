@@ -9,7 +9,7 @@ import (
 	"strconv"
 )
 
-type prompt_data struct {
+type prompt_dataItem struct {
 	dim_x    int
 	dim_y    int
 	rand     int
@@ -17,9 +17,6 @@ type prompt_data struct {
 	div_y    int
 	nbWorker int
 }
-
-var numer_port = 8000
-var address = fmt.Sprintf("127.0.0.1:%d", numer_port)
 
 func promptInt(prompt string) (int, error) {
 	var value int
@@ -37,6 +34,51 @@ func promptInt(prompt string) (int, error) {
 		break
 	}
 	return value, nil
+}
+
+func prompt(prompt_data *prompt_dataItem) {
+	var err error
+	prompt_data.dim_x, err = promptInt("Entrez la largeur de la grille que vous voulez générer (entier) : ")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	prompt_data.dim_y, err = promptInt("Entrez la hauteur de la grille que vous voulez générer (entier) : ")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	prompt_data.rand, err = promptInt("Entrez le pourcentage de cases vides ou avec des routes que vous souhaitez (entier entre 0 et 100) : ")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// Vérifier si la valeur est inférieure à 100
+
+	prompt_data.div_x, err = promptInt("Entrez la division sur la largeur de la grille que vous voulez paralléliser (entier) : ")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// Vérifier que la division sur x est plus petite que la dimension sur x
+
+	prompt_data.div_y, err = promptInt("Entrez la division sur la hauteur de la grille que vous voulez paralléliser (entier) : ")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// Vérifier que la division sur y est plus petite que la dimension sur y
+
+	prompt_data.nbWorker, err = promptInt("Entrez le nombre de threads maximal que vous voulez utiliser (entier) : ")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 }
 
 func sendInt(conn net.Conn, value int) error {
@@ -71,7 +113,7 @@ func sendInt(conn net.Conn, value int) error {
 }
 
 func main() {
-	// Connexion au serveur
+	// --- Connexion au serveur ---
 	_, address := lecture_json("input.JSON")
 	conn, err := net.Dial("tcp", address[0])
 	if err != nil {
@@ -81,28 +123,20 @@ func main() {
 	defer conn.Close()
 	fmt.Println("Connecté au serveur.")
 
-	Largeur, err := promptInt("Entrez la largeur de la grille que vous voulez générer (entier) : ")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	err = sendInt(conn, Largeur)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	// --- Récupération des données via la prompt ---
+	var prompt_data prompt_dataItem // Structure pour stocker les données à envoyer
+	prompt(&prompt_data)            // Enregistrement des données via le prompt
 
-	Longueur, err := promptInt("Entrez la longueur de la grille que vous voulez générer (entier) : ")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	err = sendInt(conn, Longueur)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	// --- Envoie des données pour générer la grille ---
+	// err = sendInt(conn, Largeur)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	return
+	// }
 
+	// --- Affichage de la progression ---
+
+	// --- Récupération de la grille ---
 	matrixBuffer := make([]byte, 8192) // Taille plus grande pour contenir une matrice
 	n, err := conn.Read(matrixBuffer)
 	if err != nil {
@@ -110,7 +144,6 @@ func main() {
 		return
 	}
 	// Désérialiser la matrice
-
 	var matrix [][]int
 	err = json.Unmarshal(matrixBuffer[:n], &matrix)
 	if err != nil {
@@ -118,5 +151,6 @@ func main() {
 		return
 	}
 
-	display(matrix, Largeur, Longueur)
+	// --- Exportation de l'image de sortie ---
+	display(matrix, prompt_data.dim_x, prompt_data.dim_y)
 }

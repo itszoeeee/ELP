@@ -11,8 +11,8 @@ import (
 	"time"
 )
 
-const DIM_X = 75
-const DIM_Y = 75
+const DIM_X = 11
+const DIM_Y = 11
 
 const BLANK = 0
 const T_UP = 1
