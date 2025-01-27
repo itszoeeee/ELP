@@ -1,6 +1,8 @@
 {
-    "imaget": "t_down.png",
-    "orientationt": "down",
-	"imagec": "c_down.png",
-    "orientationc": "down"
+    "image_t": "t_down.png",
+    "orientation_t": "down",
+	"image_c": "c_down.png",
+    "orientation_c": "down",
+    "forward": "f_h",
+    "orientation_forward": "right"
 }

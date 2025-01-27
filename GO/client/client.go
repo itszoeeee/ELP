@@ -95,5 +95,5 @@ func main() {
 		return
 	}
 
-	client(matrix, Largeur, Longueur)
+	display(matrix, Largeur, Longueur)
 }
