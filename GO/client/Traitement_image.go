@@ -28,15 +28,15 @@ func createTile_Json() (Tiles []image.Image, err error) {
 	for i := 0; i < 12; i++ {
 		Tiles = append(Tiles, image.Transparent)
 	}
-	Tiles[0], err = loadImage("../pattern/blank.png")
+	orients, fichiers := ouverture_json("input.JSON")
+	Tiles[0], err = loadImage(fichiers[3])
 	if err != nil {
 		return Tiles, fmt.Errorf("erreur lors du chargement de l'image 'blank.png': %w", err)
 	}
-	Tiles[9], err = loadImage("../pattern/cross.png")
+	Tiles[9], err = loadImage(fichiers[4])
 	if err != nil {
 		return Tiles, fmt.Errorf("erreur lors du chargement de l'image 'cross.png': %w", err)
 	}
-	orients, fichiers := ouverture_json("input.JSON")
 	Tiles[1], Tiles[2], Tiles[3], Tiles[4], err = flipImage(fichiers[0], orients[0])
 	if err != nil {
 		return Tiles, fmt.Errorf("erreur lors de la premiere rotation: %w", err)

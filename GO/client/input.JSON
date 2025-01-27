@@ -4,5 +4,7 @@
 	"image_c": "../pattern/c_down.png",
     "orientation_c": "down",
     "forward": "../pattern/f_h.png",
-    "orientation_forward": "right"
+    "orientation_forward": "right",
+    "blank":"../pattern/blank.png",
+    "cross":"../pattern/cross.png"
 }
