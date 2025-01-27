@@ -25,7 +25,7 @@ func loadImage(path string) (image.Image, error) {
 
 func createTile_Json() (Tiles []image.Image, err error) {
 	// Charger l'image pattern.png
-	for i := 0; i < 11; i++ {
+	for i := 0; i < 12; i++ {
 		Tiles = append(Tiles, image.Transparent)
 	}
 	Tiles[0], err = loadImage("blank.png")
@@ -43,6 +43,11 @@ func createTile_Json() (Tiles []image.Image, err error) {
 	}
 
 	Tiles[5], Tiles[6], Tiles[7], Tiles[8], err = flipImage(fichiers[1], orients[1])
+	if err != nil {
+		return Tiles, fmt.Errorf("erreur lors de la premiere rotation: %w", err)
+	}
+
+	_, Tiles[10], Tiles[11], _, err = flipImage(fichiers[2], orients[1])
 	if err != nil {
 		return Tiles, fmt.Errorf("erreur lors de la premiere rotation: %w", err)
 	}
@@ -72,7 +77,7 @@ func placeImageInMatrix(dst *image.RGBA, src image.Image, gridX, gridY, cellSize
 	}
 }
 
-func client(grid [][]int, width, height int) {
+func display(grid [][]int, width, height int) {
 	// Création des tuile
 	Tiles, err := createTile_Json()
 	if err != nil {

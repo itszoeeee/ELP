@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-var Orientations = map[int][]int{ //equivalent d'un dico pour faire correspondre une orientation a une structure Orientation
+var Orientations = map[int][]int{ // Équivalent d'un dico pour faire correspondre une orientation a une structure Orientation
 	1: {1, 2, 3, 4},
 	2: {2, 3, 4, 1},
 	3: {3, 4, 1, 2},
