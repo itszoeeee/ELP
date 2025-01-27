@@ -7,7 +7,9 @@ import (
 	"os"
 )
 
-type Json struct {
+type jsonItem struct {
+	TCP_address  string `json:"TCP_address"`
+	TCP_port     string `json:"TCP_port"`
 	Fichiert     string `json:"image_t"`
 	Orientationt string `json:"orientation_t"`
 	Fichierc     string `json:"image_c"`
@@ -25,7 +27,7 @@ var corresp = map[string]int{
 	"left":  4,
 }
 
-func ouverture_json(input_file string) ([]int, []string) {
+func lecture_json(input_file string) ([]int, []string) {
 	// Ouvrir le fichier JSON
 	file, err := os.Open(input_file)
 	if err != nil {
@@ -42,17 +44,17 @@ func ouverture_json(input_file string) ([]int, []string) {
 	}
 
 	// Décoder le JSON dans une structure
-	var images Json
-	err = json.Unmarshal(bxteValue, &images) //unmarshal parse le json et stocke le resultat dans &image
+	var json_data jsonItem
+	err = json.Unmarshal(bxteValue, &json_data) // Unmarshal parse le json et stocke le resultat dans &image
 	if err != nil {
 		fmt.Println("Erreur lors du décodage JSON:", err)
 		return nil, nil
 	}
 
-	if images.Orientationt == "" || images.Orientationc == "" || images.Orientationf == "" {
-		fmt.Println("Orientation invalide :", images.Orientationc, images.Orientationt)
+	if json_data.Orientationt == "" || json_data.Orientationc == "" || json_data.Orientationf == "" {
+		fmt.Println("Orientation invalide :", json_data.Orientationc, json_data.Orientationt, json_data.Orientationf)
 		return nil, nil
 	}
 
-	return []int{corresp[images.Orientationt], corresp[images.Orientationc], corresp[images.Orientationf]}, []string{images.Fichiert, images.Fichierc, images.Fichierf, images.Fichierblank, images.Fichiercross}
+	return []int{corresp[json_data.Orientationt], corresp[json_data.Orientationc], corresp[json_data.Orientationf]}, []string{json_data.TCP_address + ":" + json_data.TCP_port, json_data.Fichiert, json_data.Fichierc, json_data.Fichierf, json_data.Fichierblank, json_data.Fichiercross}
 }

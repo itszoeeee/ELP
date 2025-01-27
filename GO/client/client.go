@@ -9,6 +9,15 @@ import (
 	"strconv"
 )
 
+type prompt_data struct {
+	dim_x    int
+	dim_y    int
+	rand     int
+	div_x    int
+	div_y    int
+	nbWorker int
+}
+
 var numer_port = 8000
 var address = fmt.Sprintf("127.0.0.1:%d", numer_port)
 
@@ -21,7 +30,7 @@ func promptInt(prompt string) (int, error) {
 
 		tempValue, err := strconv.Atoi(input)
 		if err != nil || tempValue <= 0 {
-			fmt.Println("Erreur : Veuillez entrer un nombre entier valide supérieur à 0.")
+			fmt.Println("Erreur : Veuillez entrer un nombre entier positif valide.")
 			continue
 		}
 		value = tempValue
@@ -63,7 +72,8 @@ func sendInt(conn net.Conn, value int) error {
 
 func main() {
 	// Connexion au serveur
-	conn, err := net.Dial("tcp", address)
+	_, address := lecture_json("input.JSON")
+	conn, err := net.Dial("tcp", address[0])
 	if err != nil {
 		fmt.Println("Erreur lors de la connexion au serveur :", err)
 		os.Exit(1)

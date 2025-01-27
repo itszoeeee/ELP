@@ -551,9 +551,9 @@ func app(numWorkers, div_x, div_y int) {
 }
 
 func main() {
-	numWorkers := 9
+	nbWorkers := 9
 	div_x := 3
 	div_y := 3
 
-	app(numWorkers, div_x, div_y)
+	app(nbWorkers, div_x, div_y)
 }

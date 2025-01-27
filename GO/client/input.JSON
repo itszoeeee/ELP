@@ -1,4 +1,6 @@
 {
+    "TCP_address" : "127.0.0.1",
+    "TCP_port" : "8000",
     "image_t": "../pattern/t_down.png",
     "orientation_t": "down",
 	"image_c": "../pattern/c_down.png",

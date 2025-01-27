@@ -28,26 +28,26 @@ func createTile_Json() (Tiles []image.Image, err error) {
 	for i := 0; i < 12; i++ {
 		Tiles = append(Tiles, image.Transparent)
 	}
-	orients, fichiers := ouverture_json("input.JSON")
-	Tiles[0], err = loadImage(fichiers[3])
+	orients, images := lecture_json("input.JSON")
+	Tiles[0], err = loadImage(images[4])
 	if err != nil {
 		return Tiles, fmt.Errorf("erreur lors du chargement de l'image 'blank.png': %w", err)
 	}
-	Tiles[9], err = loadImage(fichiers[4])
+	Tiles[9], err = loadImage(images[5])
 	if err != nil {
 		return Tiles, fmt.Errorf("erreur lors du chargement de l'image 'cross.png': %w", err)
 	}
-	Tiles[1], Tiles[2], Tiles[3], Tiles[4], err = flipImage(fichiers[0], orients[0])
+	Tiles[1], Tiles[2], Tiles[3], Tiles[4], err = flipImage(images[1], orients[0])
 	if err != nil {
 		return Tiles, fmt.Errorf("erreur lors de la premiere rotation: %w", err)
 	}
 
-	Tiles[5], Tiles[6], Tiles[7], Tiles[8], err = flipImage(fichiers[1], orients[1])
+	Tiles[5], Tiles[6], Tiles[7], Tiles[8], err = flipImage(images[2], orients[1])
 	if err != nil {
 		return Tiles, fmt.Errorf("erreur lors de la premiere rotation: %w", err)
 	}
 
-	_, Tiles[10], Tiles[11], _, err = flipImage(fichiers[2], orients[2])
+	_, Tiles[10], Tiles[11], _, err = flipImage(images[3], orients[2])
 	if err != nil {
 		return Tiles, fmt.Errorf("erreur lors de la premiere rotation: %w", err)
 	}
