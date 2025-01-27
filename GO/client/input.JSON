@@ -5,8 +5,8 @@
     "orientation_t": "down",
 	"image_c": "../pattern/c_down.png",
     "orientation_c": "down",
-    "forward": "../pattern/f_h.png",
-    "orientation_forward": "right",
-    "blank":"../pattern/blank.png",
-    "cross":"../pattern/cross.png"
+    "image_f": "../pattern/f_h.png",
+    "orientation_f": "right",
+    "image_blank":"../pattern/blank.png",
+    "image_cross":"../pattern/cross.png"
 }

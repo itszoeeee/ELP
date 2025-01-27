@@ -43,16 +43,16 @@ func createTile_Json() (Tiles []image.Image, err error) {
 		Tiles = append(Tiles, image.Transparent)
 	}
 	orients, images := lecture_json("input.JSON")
-	Tiles[BLANK], err = loadImage(images[4])
+	Tiles[BLANK], err = loadImage(images[3])
 	if err != nil {
 		return Tiles, fmt.Errorf("erreur lors du chargement de l'image 'blank.png': %w", err)
 	}
-	Tiles[CROSS], err = loadImage(images[5])
+	Tiles[CROSS], err = loadImage(images[4])
 	if err != nil {
 		return Tiles, fmt.Errorf("erreur lors du chargement de l'image 'cross.png': %w", err)
 	}
 
-	T, err = loadImage(images[1])
+	T, err = loadImage(images[0])
 	if err != nil {
 		return Tiles, fmt.Errorf("erreur lors du chargement de l'image 't_.png': %w", err)
 	}
@@ -61,7 +61,7 @@ func createTile_Json() (Tiles []image.Image, err error) {
 		return Tiles, fmt.Errorf("erreur lors de la premiere rotation: %w", err)
 	}
 
-	C, err = loadImage(images[2])
+	C, err = loadImage(images[1])
 	if err != nil {
 		return Tiles, fmt.Errorf("erreur lors du chargement de l'image 'c_.png': %w", err)
 	}
@@ -70,7 +70,7 @@ func createTile_Json() (Tiles []image.Image, err error) {
 		return Tiles, fmt.Errorf("erreur lors de la premiere rotation: %w", err)
 	}
 
-	F, err = loadImage(images[3])
+	F, err = loadImage(images[2])
 	if err != nil {
 		return Tiles, fmt.Errorf("erreur lors du chargement de l'image 'f_.png': %w", err)
 	}
