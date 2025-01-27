@@ -13,7 +13,7 @@ type Json struct {
 	Fichierc     string `json:"image_c"`
 	Orientationc string `json:"orientation_c"`
 	Fichierf     string `json:"forward"`
-	Orientationf string `json:"oritentation_forward"`
+	Orientationf string `json:"orientation_forward"`
 }
 
 var corresp = map[string]int{

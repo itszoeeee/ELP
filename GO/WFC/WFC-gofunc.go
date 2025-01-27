@@ -11,8 +11,8 @@ import (
 	"time"
 )
 
-const DIM_X = 200
-const DIM_Y = 200
+const DIM_X = 75
+const DIM_Y = 75
 
 const BLANK = 0
 const T_UP = 1
@@ -545,8 +545,8 @@ func app(numWorkers, div_x, div_y int) {
 
 		close(stopChan)                    // Ferme le canal de l'avancement
 		time.Sleep(100 * time.Millisecond) // Attendre que le canal de l'avancement soit bien fermé
-
-		// affichage(grid)
+		// fmt.Print(grid_TCP)
+		affichage(grid)
 	}
 }
 
