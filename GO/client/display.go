@@ -7,6 +7,19 @@ import (
 	"os"
 )
 
+const BLANK = 0
+const T_UP = 1
+const T_RIGHT = 2
+const T_DOWN = 3
+const T_LEFT = 4
+const C_UP = 5
+const C_RIGHT = 6
+const C_DOWN = 7
+const C_LEFT = 8
+const CROSS = 9
+const F_H = 10
+const F_V = 11
+
 // Fonction pour ouvrir une image et la décoder
 func loadImage(path string) (image.Image, error) {
 	file, err := os.Open(path)
@@ -24,30 +37,44 @@ func loadImage(path string) (image.Image, error) {
 }
 
 func createTile_Json() (Tiles []image.Image, err error) {
-	// Charger l'image pattern.png
+	// Initialisation des tuiles
+	var T, C, F image.Image
 	for i := 0; i < 12; i++ {
 		Tiles = append(Tiles, image.Transparent)
 	}
 	orients, images := lecture_json("input.JSON")
-	Tiles[0], err = loadImage(images[4])
+	Tiles[BLANK], err = loadImage(images[4])
 	if err != nil {
 		return Tiles, fmt.Errorf("erreur lors du chargement de l'image 'blank.png': %w", err)
 	}
-	Tiles[9], err = loadImage(images[5])
+	Tiles[CROSS], err = loadImage(images[5])
 	if err != nil {
 		return Tiles, fmt.Errorf("erreur lors du chargement de l'image 'cross.png': %w", err)
 	}
-	Tiles[1], Tiles[2], Tiles[3], Tiles[4], err = flipImage(images[1], orients[0])
+
+	T, err = loadImage(images[1])
+	if err != nil {
+		return Tiles, fmt.Errorf("erreur lors du chargement de l'image 't_.png': %w", err)
+	}
+	Tiles[T_UP], Tiles[T_RIGHT], Tiles[T_DOWN], Tiles[T_LEFT], err = flipImage(T, orients[0])
 	if err != nil {
 		return Tiles, fmt.Errorf("erreur lors de la premiere rotation: %w", err)
 	}
 
-	Tiles[5], Tiles[6], Tiles[7], Tiles[8], err = flipImage(images[2], orients[1])
+	C, err = loadImage(images[2])
+	if err != nil {
+		return Tiles, fmt.Errorf("erreur lors du chargement de l'image 'c_.png': %w", err)
+	}
+	Tiles[C_UP], Tiles[C_RIGHT], Tiles[C_DOWN], Tiles[C_LEFT], err = flipImage(C, orients[1])
 	if err != nil {
 		return Tiles, fmt.Errorf("erreur lors de la premiere rotation: %w", err)
 	}
 
-	_, Tiles[10], Tiles[11], _, err = flipImage(images[3], orients[2])
+	F, err = loadImage(images[3])
+	if err != nil {
+		return Tiles, fmt.Errorf("erreur lors du chargement de l'image 'f_.png': %w", err)
+	}
+	_, Tiles[F_H], Tiles[F_V], _, err = flipImage(F, orients[2])
 	if err != nil {
 		return Tiles, fmt.Errorf("erreur lors de la premiere rotation: %w", err)
 	}
@@ -87,7 +114,7 @@ func display(grid [][]int, width, height int) {
 
 	// Dimensions de l'image de sortie
 	gridWidth, gridHeight := width, height
-	cellSize := Tiles[0].Bounds().Dx() // On suppose que la cellule fait la même taille que les images chargées
+	cellSize := Tiles[BLANK].Bounds().Dx() // On suppose que la cellule fait la même taille que les images chargées
 
 	// Créer de l'image de sortie
 	outputImage := createEmptyImage(cellSize*gridWidth, cellSize*gridHeight)

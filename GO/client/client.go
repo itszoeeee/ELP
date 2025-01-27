@@ -128,11 +128,17 @@ func main() {
 	prompt(&prompt_data)            // Enregistrement des données via le prompt
 
 	// --- Envoie des données pour générer la grille ---
-	// err = sendInt(conn, Largeur)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	return
-	// }
+	err = sendInt(conn, prompt_data.dim_x)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	err = sendInt(conn, prompt_data.dim_y)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	// --- Affichage de la progression ---
 

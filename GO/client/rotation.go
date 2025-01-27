@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"image"
-	"os"
 )
 
 var Orientations = map[int][]int{ // Équivalent d'un dico pour faire correspondre une orientation a une structure Orientation
@@ -13,20 +12,7 @@ var Orientations = map[int][]int{ // Équivalent d'un dico pour faire correspond
 	4: {4, 1, 2, 3},
 }
 
-func flipImage(inputFile string, orient int) (image.Image, image.Image, image.Image, image.Image, error) {
-	// Ouvrir le fichier d'entrée
-	file, err := os.Open(inputFile)
-	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("erreur lors de l'ouverture de l'image : %v", err)
-	}
-	defer file.Close()
-
-	// Décoder l'image
-	img, _, err := image.Decode(file)
-	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("erreur lors du décodage de l'image : %v", err)
-	}
-
+func flipImage(img image.Image, orient int) (image.Image, image.Image, image.Image, image.Image, error) {
 	// Rotation des images en fonction de param (1 pour une rotation, 2 pour deux rotations, ...)
 	if Orientations[orient] == nil {
 		return nil, nil, nil, nil, fmt.Errorf("orientation invalide:")
