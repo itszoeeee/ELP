@@ -8,10 +8,12 @@ import (
 )
 
 type Json struct {
-	Fichiert     string `json:"imaget"`
-	Orientationt string `json:"orientationt"`
-	Fichierc     string `json:"imagec"`
-	Orientationc string `json:"orientationc"`
+	Fichiert     string `json:"image_t"`
+	Orientationt string `json:"orientation_t"`
+	Fichierc     string `json:"image_c"`
+	Orientationc string `json:"orientation_c"`
+	Fichierf     string `json:"forward"`
+	Orientationf string `json:"oritentation_forward"`
 }
 
 var corresp = map[string]int{
@@ -45,10 +47,10 @@ func ouverture_json(input_file string) ([]int, []string) {
 		return nil, nil
 	}
 
-	if images.Orientationt == "" || images.Orientationc == "" {
+	if images.Orientationt == "" || images.Orientationc == "" || images.Orientationf == "" {
 		fmt.Println("Orientation invalide :", images.Orientationc, images.Orientationt)
 		return nil, nil
 	}
 
-	return []int{corresp[images.Orientationt], corresp[images.Orientationc]}, []string{images.Fichiert, images.Fichierc}
+	return []int{corresp[images.Orientationt], corresp[images.Orientationc], corresp[images.Orientationf]}, []string{images.Fichiert, images.Fichierc, images.Fichierf}
 }
