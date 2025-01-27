@@ -1,8 +1,0 @@
-{
-    "image_t": "../pattern/t_down.png",
-    "orientation_t": "down",
-	"image_c": "../pattern/c_down.png",
-    "orientation_c": "down",
-    "forward": "../pattern/f_h.png",
-    "orientation_forward": "right"
-}
