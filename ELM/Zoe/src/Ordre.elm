@@ -1,4 +1,4 @@
-module Structure exposing (..)
+module Ordre exposing (..)
 
 type Structure = F Int | L Int | R Int | Repeat Int (List Structure)
 
