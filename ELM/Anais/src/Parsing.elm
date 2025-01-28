@@ -6,9 +6,11 @@ type Structure = F Int | L Int | R Int | Repeat Int (List Structure)
 type alias Data = List Structure
 
 --Fonction principale
-tcTurtleToData : String -> Result (List Parser.DeadEnd) Data
+tcTurtleToData : String -> Data
 tcTurtleToData input =
-    run parserGlobal input
+    case run parserGlobal input of
+        Ok result -> result
+        Err _ -> []
 
 parserGlobal : Parser Data
 parserGlobal =
