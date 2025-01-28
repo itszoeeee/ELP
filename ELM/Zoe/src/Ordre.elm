@@ -6,7 +6,7 @@ type alias Data = List Structure
 
 type alias Ordre = List String
 
-convertToOrdre : Data -> Ordre    -- pour une liste ex [L 4, R 3] ==> [L, L, L, L, R, R, R]
+convertToOrdre : Data -> Ordre    -- pour data = [Repeat 2 [R 5, Repeat 3 [F 4, L 1]], F 6] on obtient ["R","R","R","R","R","F","F","F","F","L","F","F","F","F","L","F","F","F","F","L","R","R","R","R","R","F","F","F","F","L","F","F","F","F","L","F","F","F","F","L","F","F","F","F","F","F"]
 convertToOrdre data =
     List.concatMap structureToList data
 
