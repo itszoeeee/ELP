@@ -115,7 +115,7 @@ func sendInt(conn net.Conn, value int) error {
 func main() {
 	// --- Connexion au serveur ---
 	_, address := lecture_json("input.JSON")
-	conn, err := net.Dial("tcp", address[0])
+	conn, err := net.Dial("tcp", address[5])
 	if err != nil {
 		fmt.Println("Erreur lors de la connexion au serveur :", err)
 		os.Exit(1)

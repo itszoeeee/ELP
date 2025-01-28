@@ -8,16 +8,16 @@ import (
 )
 
 type jsonItem struct {
-	TCP_address  string `json:"TCP_address"`
-	TCP_port     string `json:"TCP_port"`
-	Fichiert     string `json:"image_t"`
-	Orientationt string `json:"orientation_t"`
-	Fichierc     string `json:"image_c"`
-	Orientationc string `json:"orientation_c"`
-	Fichierf     string `json:"forward"`
-	Orientationf string `json:"orientation_forward"`
-	Fichierblank string `json:"blank"`
-	Fichiercross string `json:"cross"`
+	TCP_address   string `json:"TCP_address"`
+	TCP_port      string `json:"TCP_port"`
+	Image_t       string `json:"image_t"`
+	Orientation_t string `json:"orientation_t"`
+	Image_c       string `json:"image_c"`
+	Orientation_c string `json:"orientation_c"`
+	Image_f       string `json:"image_f"`
+	Orientation_f string `json:"orientation_f"`
+	Image_blank   string `json:"image_blank"`
+	Fichiercross  string `json:"image_cross"`
 }
 
 var corresp = map[string]int{
@@ -51,10 +51,10 @@ func lecture_json(input_file string) ([]int, []string) {
 		return nil, nil
 	}
 
-	if json_data.Orientationt == "" || json_data.Orientationc == "" || json_data.Orientationf == "" {
-		fmt.Println("Orientation invalide :", json_data.Orientationc, json_data.Orientationt, json_data.Orientationf)
+	if json_data.Orientation_t == "" || json_data.Orientation_c == "" || json_data.Orientation_f == "" {
+		fmt.Println("Orientation invalide :", json_data.Orientation_c, json_data.Orientation_t, json_data.Orientation_f)
 		return nil, nil
 	}
 
-	return []int{corresp[json_data.Orientationt], corresp[json_data.Orientationc], corresp[json_data.Orientationf]}, []string{json_data.TCP_address + ":" + json_data.TCP_port, json_data.Fichiert, json_data.Fichierc, json_data.Fichierf, json_data.Fichierblank, json_data.Fichiercross}
+	return []int{corresp[json_data.Orientation_t], corresp[json_data.Orientation_c], corresp[json_data.Orientation_f]}, []string{json_data.Image_t, json_data.Image_c, json_data.Image_f, json_data.Image_blank, json_data.Fichiercross, json_data.TCP_address + ":" + json_data.TCP_port}
 }
