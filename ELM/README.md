@@ -3,7 +3,7 @@
 # Tests
 ## Level 1
 - TcTurtle : [Forward 3]
-- Data : [(F, 3)]
+- Data : F 3
 - Ordre : [F, F, F]
 
 ## Level 2
