@@ -6,12 +6,12 @@ type alias Data = List Structure
 
 type alias Ordre = List String
 
-convertToOrdre : Data -> Ordre
+convertToOrdre : Data -> Ordre    -- pour une liste ex [L 4, R 3] ==> [L, L, L, L, R, R, R]
 convertToOrdre data =
     List.concatMap structureToList data
 
 
-structureToList : Structure -> Ordre
+structureToList : Structure -> Ordre   -- pour une seule commande ex "L 4"
 structureToList structure =
     case structure of
         F n ->
