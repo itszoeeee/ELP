@@ -11,7 +11,7 @@ convertToOrdre data =
     List.concatMap structureToList data
 
 
-structureToList : Structure -> Ordre   -- pour une seule commande ex "L 4"
+structureToList : Structure -> Ordre   -- pour une seule commande ex structureToList(L 4) ==> ["L","L","L","L"]
 structureToList structure =
     case structure of
         F n ->
