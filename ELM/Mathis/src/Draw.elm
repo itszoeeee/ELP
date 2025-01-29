@@ -1,5 +1,4 @@
-module Draw exposing (main)
-
+module Draw exposing (calculatePositions, formatPositions, Movement(..), level_1, positions)
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
 
@@ -92,7 +91,7 @@ main =
         , ry "15"
         , fill "white"
         , strokeWidth "3"
-        , stroke "rgb(50, 200, 200)"
+        , stroke "rgb(200, 50, 162)"
         ]
         []
       , polyline

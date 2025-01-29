@@ -1,7 +1,7 @@
 module Parsing exposing(..)
 
 import Parser exposing (..)
-type Structure = F Int | L Int | R Int | Repeat Int (List Structure)
+type Structure = A Int | G Int | D Int | Repeat Int (List Structure)
 
 type alias Data = List Structure
 
@@ -34,17 +34,17 @@ optionsParser =
 
 fParser : Parser Structure
 fParser =
-    succeed F
+    succeed A
         |= (symbol "Forward" |> andThen (\_ -> spaces) |> andThen (\_ -> int))
 
 lParser : Parser Structure
 lParser =
-    succeed L
+    succeed G
         |= (symbol "Left" |> andThen (\_ -> spaces) |> andThen (\_ -> int))
 
 rParser : Parser Structure
 rParser =
-    succeed R
+    succeed D
         |= (symbol "Right" |> andThen (\_ -> spaces) |> andThen (\_ -> int))
 
 repeatParser : Parser Structure

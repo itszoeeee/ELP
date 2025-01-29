@@ -5,7 +5,9 @@ import Parser exposing(..)
 import Html exposing (Html, div, h1, p, text, input, button)
 import Html.Attributes exposing (class, value, placeholder)
 import Html.Events exposing (onInput, onClick)
-import Parsing exposing(..)
+import Svg exposing (svg, polyline, rect)
+import Svg.Attributes exposing (width, height, viewBox, points, fill, strokeWidth, stroke, x, y, rx, ry)
+import Draw exposing(..)
 
 -- MODEL
 type alias Model =
@@ -13,14 +15,16 @@ type alias Model =
     , content : String
     , userInput : String
     , result : String
+    , svgPath : String
     }
 
 init : Model
 init =
     { title = "Dessiner avec TcTurtle"
-    , content = "Entre vos instructions dans le langage TcTurtle"
+    , content = "Entrez vos instructions dans le langage TcTurtle"
     , userInput = ""
     , result = ""
+    , svgPath = ""
     }
 
 -- UPDATE
@@ -28,19 +32,31 @@ type Msg
     = UpdateInput String
     | ProcessInput
 
--- Fonction qui traite l'input (vous pouvez la modifier selon vos besoins)
-processString : String -> String
-processString str =
-    "traitons l'entree : " ++ str
+result : String -> String
+result str =
+    let
+        parsedMovements = convert str
+    in
+    formatPositions (calculatePositions (convertToMovements parsedMovements))
+
 
 update : Msg -> Model -> Model
 update msg model =
     case msg of
         UpdateInput newInput ->
-            { model | userInput = newInput }
+            { model
+                | userInput = newInput
+            }
         
         ProcessInput ->
-            { model | result = processString model.userInput }
+            let
+                parsedMovements = convert model.userInput
+                svgPathString = formatPositions (calculatePositions (convertToMovements parsedMovements))
+            in
+            { model
+                | result = "Instructions traitées."
+                , svgPath = svgPathString
+            }
 
 -- VIEW
 view : Model -> Html Msg
@@ -50,16 +66,42 @@ view model =
         , p [ class "content" ] [ text model.content ]
         , div [ class "input-section" ]
             [ input 
-                [ placeholder "Ex:[Left 3, Forward 10] ou [Repeat 2 [Left 3, Right 5]]"
+                [ placeholder "Ex: [Left 3, Forward 10] ou [Repeat 2 [Left 3, Right 5]]"
                 , value model.userInput
                 , onInput UpdateInput
                 , class "input-field"
                 ] []
             , button [ onClick ProcessInput, class "process-button" ] 
-                [ text "valider" ]
+                [ text "Valider" ]
             ]
         , p [ class "result" ] [ text model.result ]
+        , svg
+            [ width "600"
+            , height "600"
+            , viewBox "0 0 120 250"
+            ]
+            [ rect
+                [ x "10"
+                , y "10"
+                , rx "15"
+                , ry "15"
+                , width "150"
+                , height "150"
+                , fill "white"
+                , strokeWidth "3"
+                , stroke "rgb(200, 50, 162)"
+                ]
+                []
+            , polyline
+                [ points model.svgPath
+                , fill "none"
+                , strokeWidth "0.5"
+                , stroke "black"
+                ]
+                []
+            ]
         ]
+
 
 -- MAIN
 main : Program () Model Msg
