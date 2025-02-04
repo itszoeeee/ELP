@@ -48,6 +48,16 @@ Si blank est une option, renvoie une liste de WeightedItem avec un poids de p po
 
 On applique ensuite a cette liste de valeurs pondérées la fonction WeightedRandom
 
+## Autres améliorations
+### améliorations techniques
+- Système de connecteurs (algo WFC)
+- Segmentation et connexion de blocs à partir d'une seule image (algo WFC)
+- v1 : Régénération de la grille ou sous-grille en cas d'erreur
+- v2 : Retour en arrière en cas d'erreur (enregistrement des 10 dernières étapes par exemple)
+
+### améliorations interface
+- Possibilité d'enregistrer des paramètres de génération dans le JSON
+- Enregistrement de la grille générée dans un fichier pour changer les tuiles en local sans avoir à régénérer une grille avec le serveur
 
 PARALLELISATION
 

@@ -1,18 +1,12 @@
 package main
 
 import (
-	"fmt"
-	"image"
-	"image/png"
 	"math/rand"
-	"os"
+	"net"
 	"sync"
 	"sync/atomic"
 	"time"
 )
-
-// const DIM_X = 75
-// const DIM_Y = 100
 
 const BLANK = 0
 const T_UP = 1
@@ -128,144 +122,6 @@ type weightedItem struct {
 }
 
 var nb_cell_collapsed int64 = 0
-
-// Fonction pour ouvrir une image et la décoder
-func loadImage(path string) (image.Image, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	img, _, err := image.Decode(file)
-	if err != nil {
-		return nil, err
-	}
-
-	return img, nil
-}
-
-func createTile() (Tiles []image.Image, err error) {
-	// Charger l'image pattern.png
-	for k := 0; k < len(rules); k++ {
-		Tiles = append(Tiles, image.Transparent)
-	}
-
-	Tiles[0], err = loadImage("GO/pattern/blank.png")
-	if err != nil {
-		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'blank.png': %w", err)
-	}
-	Tiles[1], err = loadImage("GO/pattern/t_up.png")
-	if err != nil {
-		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 't_up.png': %w", err)
-	}
-	Tiles[2], err = loadImage("GO/pattern/t_right.png")
-	if err != nil {
-		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 't_right.png': %w", err)
-	}
-	Tiles[3], err = loadImage("GO/pattern/t_down.png")
-	if err != nil {
-		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 't_down.png': %w", err)
-	}
-	Tiles[4], err = loadImage("GO/pattern/t_left.png")
-	if err != nil {
-		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 't_left.png': %w", err)
-	}
-	Tiles[5], err = loadImage("GO/pattern/c_up.png")
-	if err != nil {
-		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'c_up.png': %w", err)
-	}
-	Tiles[6], err = loadImage("GO/pattern/c_right.png")
-	if err != nil {
-		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'c_right.png': %w", err)
-	}
-	Tiles[7], err = loadImage("GO/pattern/c_down.png")
-	if err != nil {
-		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'c_down.png': %w", err)
-	}
-	Tiles[8], err = loadImage("GO/pattern/c_left.png")
-	if err != nil {
-		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'c_left.png': %w", err)
-	}
-	Tiles[9], err = loadImage("GO/pattern/cross.png")
-	if err != nil {
-		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'cross.png': %w", err)
-	}
-	Tiles[10], err = loadImage("GO/pattern/f_h.png")
-	if err != nil {
-		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'f_h.png': %w", err)
-	}
-	Tiles[11], err = loadImage("GO/pattern/f_v.png")
-	if err != nil {
-		return Tiles, fmt.Errorf("Erreur lors du chargement de l'image 'f_v.png': %w", err)
-	}
-	return Tiles, nil
-}
-
-// Fonction pour créer une image vide avec une taille spécifique (largeur, hauteur)
-func createEmptyImage(width, height int) *image.RGBA {
-	return image.NewRGBA(image.Rect(0, 0, width, height))
-}
-
-// Fonction pour dessiner l'image dans une case spécifique (x, y) de la matrice
-func placeImageInMatrix(dst *image.RGBA, src image.Image, gridX, gridY, cellSize int) {
-	// Position de départ de la cellule
-	startX := gridX * cellSize
-	startY := gridY * cellSize
-
-	// Dessine l'image src dans la cellule
-	for y := 0; y < cellSize; y++ {
-		for x := 0; x < cellSize; x++ {
-			// Récupère la couleur de chaque pixel de l'image source
-			color := src.At(x, y)
-			// Place cette couleur dans l'image de destination
-			dst.Set(startX+x, startY+y, color)
-		}
-	}
-}
-
-func display(grid [][]*gridItem, dim_x, dim_y int) {
-	// Création des tuiles
-	Tiles, err := createTile()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	// Dimensions de l'image de sortie
-	gridWidth, gridHeight := dim_x, dim_y
-	cellSize := Tiles[0].Bounds().Dx() // On suppose que la cellule fait la même taille que les images chargées
-
-	// Créer de l'image de sortie
-	outputImage := createEmptyImage(cellSize*gridWidth, cellSize*gridHeight)
-
-	// Affichage des tuiles (si la tuile est collapsed)
-	for j := 0; j < dim_y; j++ {
-		for i := 0; i < dim_x; i++ {
-			var cell = grid[j][i]
-			if cell.collapsed && len(cell.options) != 0 {
-				placeImageInMatrix(outputImage, Tiles[cell.options[0]], i, j, cellSize)
-			}
-		}
-	}
-
-	// Exporter l'image résultante dans un fichier PNG
-	outFile, err := os.Create("GO/output.png")
-	if err != nil {
-		fmt.Println("\n\nErreur lors de la création de l'image de sortie:\n", err)
-		return
-	}
-	defer outFile.Close()
-
-	err = png.Encode(outFile, outputImage)
-	if err != nil {
-		fmt.Println("\n\nErreur lors de l'exportation de l'image:\n", err)
-	}
-
-	fmt.Println("\n\nImage exportée avec succès dans output.png\n")
-}
-
-// -------------------- Utile pour le serveur --------------------
 
 // Fonction pour effectuer un tirage pondéré
 func weighted_random(weightedOptions []weightedItem) int {
@@ -469,7 +325,7 @@ func worker(tasks <-chan func(), wg *sync.WaitGroup) {
 	}
 }
 
-// Fonction pour paralléliser le calcul de WFC
+// Fonction pour envoyer le calcul de WFC dans une Goroutines
 func multi_process(grid *[][]*gridItem, dim_x, dim_y, proba, div_x, div_y, numWorkers int) {
 	var wg sync.WaitGroup
 	wg.Add(div_x * div_y)                   // Diviser la matrice en div_x * div_y sous-grilles et envoyer les tâches aux workers
@@ -524,7 +380,7 @@ func multi_process(grid *[][]*gridItem, dim_x, dim_y, proba, div_x, div_y, numWo
 	close(tasks) // Fermer le canal des tâches une fois qu'elles sont toutes envoyées
 }
 
-func progressReporter(stopChan <-chan struct{}, dim_x, dim_y int) { // Calcul de la progession
+func progress(stopChan <-chan struct{}, conn net.Conn, dim_x, dim_y int) { // Calcul de la progession
 	var lastPercentage = -1
 
 	for {
@@ -532,77 +388,41 @@ func progressReporter(stopChan <-chan struct{}, dim_x, dim_y int) { // Calcul de
 		case <-time.After(100 * time.Millisecond): // Toutes les 100 millisecondes
 			percentage := int((atomic.LoadInt64(&nb_cell_collapsed) * 100)) / (dim_x * dim_y) // Converstion en int de la structure atomic pour protéger l'accès
 			if percentage != lastPercentage {
-				fmt.Printf("\r[") // Permet de revenir au début de la ligne sans en ajouter une nouvelle, afin de mettre à jour la même ligne de la console
-				for j := 0; j < 50; j++ {
-					if j < percentage/2 {
-						fmt.Print("=")
-					} else {
-						fmt.Print(" ")
-					}
-				}
-				fmt.Printf("] %d%%", percentage)
+				send_int(conn, percentage) // Envoie du pourcentage au client
 				lastPercentage = percentage
 			}
 		case <-stopChan:
-			fmt.Printf("\nGénération de l'image terminée")
+			send_int(conn, 100) // Signal que la grille est complète
 			return
 		}
 	}
 }
 
-func app(dim_x, dim_y, proba, div_x, div_y, numWorkers int) {
-	if div_x <= 0 || div_y <= 0 {
-		fmt.Println("\n\nErreur : div_x et div_y doivent être strictement positifs\n")
-	}
-	if numWorkers == 0 {
-		fmt.Println("\n\nErreur : numWorkers doit être strictement positif\n")
+func grid_process(grid_TCP *[][]int, dim_x, dim_y, proba, div_x, div_y, numWorkers int) {
+
+	// ----- Initialisation -----
+	var grid [][]*gridItem         // Création de la grille
+	grid_init(&grid, dim_x, dim_y) // Initialisation des éléments de la grille
+
+	// ----- Boucle principale -----
+	if div_x == 1 && div_y == 1 { // Si on utilise pas de Goroutines
+		WFC(&grid, 0, proba)
 	} else {
-		stopChan := make(chan struct{})             // Créer un canal pour arrêter le rapporteur de progression
-		go progressReporter(stopChan, dim_x, dim_y) // Lancer le calcul de progression
-
-		// ----- Initialisation -----
-		var grid [][]*gridItem         // Création de la grille
-		grid_init(&grid, dim_x, dim_y) // Initialisation des éléments de la grille
-		// ----- Fin de l'initialisation -----
-
-		// ----- Boucle principale -----
-		if div_x == 1 && div_y == 1 {
-			WFC(&grid, 0, proba)
-		} else {
-			multi_process(&grid, dim_x, dim_y, proba, div_x, div_y, numWorkers)
-			WFC(&grid, 1, proba)
-		}
-		// ----- Fin de la boucle principale -----
-
-		// Grille à retourner par le serveur TCP
-		var grid_TCP [][]int
-		for j := 0; j < dim_y; j++ {
-			var row []int                // Créer un slice vide pour chaque ligne
-			for i := 0; i < dim_x; i++ { // Initialiser chaque cellule dans la ligne
-				cell := grid[j][i]
-				if cell.collapsed {
-					row = append(row, cell.options...)
-				} else {
-					row = append(row, -1)
-				}
-			}
-			grid_TCP = append(grid_TCP, row) // Ajouter la ligne à la grille
-		}
-
-		close(stopChan)                    // Ferme le canal de l'avancement
-		time.Sleep(100 * time.Millisecond) // Attendre que le canal de l'avancement soit bien fermé
-		// fmt.Print(grid_TCP)
-		display(grid, dim_x, dim_y)
+		multi_process(&grid, dim_x, dim_y, proba, div_x, div_y, numWorkers)
+		WFC(&grid, 1, proba)
 	}
-}
 
-func main() {
-	dim_x := 100
-	dim_y := 27
-	proba := 90
-	div_x := 3
-	div_y := 3
-	nbWorkers := 9
-
-	app(dim_x, dim_y, proba, div_x, div_y, nbWorkers)
+	// Grille à retourner par le serveur TCP
+	for j := 0; j < dim_y; j++ {
+		var row []int                // Créer un slice vide pour chaque ligne
+		for i := 0; i < dim_x; i++ { // Initialiser chaque cellule dans la ligne
+			cell := grid[j][i]
+			if cell.collapsed {
+				row = append(row, cell.options...)
+			} else {
+				row = append(row, -1) // Renvoie -1 sur la cellule n'est pas collapsed
+			}
+		}
+		*grid_TCP = append(*grid_TCP, row) // Ajouter la ligne à la grille
+	}
 }

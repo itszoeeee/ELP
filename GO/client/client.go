@@ -10,12 +10,12 @@ import (
 )
 
 type prompt_dataItem struct {
-	dim_x    int
-	dim_y    int
-	rand     int
-	div_x    int
-	div_y    int
-	nbWorker int
+	Dim_x    int
+	Dim_y    int
+	Proba    int
+	Div_x    int
+	Div_y    int
+	NbWorker int
 }
 
 func promptInt(prompt string) (int, error) {
@@ -25,12 +25,12 @@ func promptInt(prompt string) (int, error) {
 		var input string
 		fmt.Scanln(&input)
 
-		tempValue, err := strconv.Atoi(input)
-		if err != nil || tempValue <= 0 {
+		temp_value, err := strconv.Atoi(input)
+		if err != nil || temp_value <= 0 {
 			fmt.Println("Erreur : Veuillez entrer un nombre entier positif valide.")
 			continue
 		}
-		value = tempValue
+		value = temp_value
 		break
 	}
 	return value, nil
@@ -38,19 +38,19 @@ func promptInt(prompt string) (int, error) {
 
 func prompt(prompt_data *prompt_dataItem) {
 	var err error
-	prompt_data.dim_x, err = promptInt("Entrez la largeur de la grille que vous voulez générer (entier) : ")
+	prompt_data.Dim_x, err = promptInt("Entrez la largeur de la grille que vous voulez générer (entier) : ")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	prompt_data.dim_y, err = promptInt("Entrez la hauteur de la grille que vous voulez générer (entier) : ")
+	prompt_data.Dim_y, err = promptInt("Entrez la hauteur de la grille que vous voulez générer (entier) : ")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	prompt_data.rand, err = promptInt("Entrez le pourcentage de cases vides ou avec des routes que vous souhaitez (entier entre 0 et 100) : ")
+	prompt_data.Proba, err = promptInt("Entrez le pourcentage de cases vides ou avec des routes que vous souhaitez (entier entre 0 et 100) : ")
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -58,7 +58,7 @@ func prompt(prompt_data *prompt_dataItem) {
 
 	// Vérifier si la valeur est inférieure à 100
 
-	prompt_data.div_x, err = promptInt("Entrez la division sur la largeur de la grille que vous voulez paralléliser (entier) : ")
+	prompt_data.Div_x, err = promptInt("Entrez la division sur la largeur de la grille que vous voulez paralléliser (entier) : ")
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -66,7 +66,7 @@ func prompt(prompt_data *prompt_dataItem) {
 
 	// Vérifier que la division sur x est plus petite que la dimension sur x
 
-	prompt_data.div_y, err = promptInt("Entrez la division sur la hauteur de la grille que vous voulez paralléliser (entier) : ")
+	prompt_data.Div_y, err = promptInt("Entrez la division sur la hauteur de la grille que vous voulez paralléliser (entier) : ")
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -74,42 +74,73 @@ func prompt(prompt_data *prompt_dataItem) {
 
 	// Vérifier que la division sur y est plus petite que la dimension sur y
 
-	prompt_data.nbWorker, err = promptInt("Entrez le nombre de threads maximal que vous voulez utiliser (entier) : ")
+	prompt_data.NbWorker, err = promptInt("Entrez le nombre de threads maximal que vous voulez utiliser (entier) : ")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 }
 
-func sendInt(conn net.Conn, value int) error {
-	// Convertir l'entier en bytes
+func send_data(conn net.Conn, data prompt_dataItem) {
+	// Sérialisation en JSON de data
+	data_serial, err := json.Marshal(data)
+	if err != nil {
+		fmt.Println("Erreur de sérialisation JSON :", err)
+		return
+	}
+	// Envoyer la taille des données JSON
+	buffer_size := make([]byte, 4)
+	binary.BigEndian.PutUint32(buffer_size, uint32(len(data_serial)))
+	_, err = conn.Write(buffer_size)
+	if err != nil {
+		fmt.Println("Erreur lors de l'envoi de la taille des données :", err)
+		return
+	}
+	// Envoyer les données sérialisées
+	_, err = conn.Write(data_serial)
+	if err != nil {
+		fmt.Println("Erreur lors de l'envoi des données :", err)
+		return
+	}
+	fmt.Println("Données envoyées avec succès.")
+}
+
+func receive_data(conn net.Conn, data *[][]int) {
+	// Lecture de la taille des données JSON
+	buffer_size := make([]byte, 4)
+	_, err := conn.Read(buffer_size)
+	if err != nil {
+		fmt.Println("Erreur lors de la lecture de la taille :", err)
+		return
+	}
+	data_size := binary.BigEndian.Uint32(buffer_size)
+
+	// Lecture des données sérialisées de la taille spécifiée
+	data_serial := make([]byte, data_size)
+	_, err = conn.Read(data_serial)
+	if err != nil {
+		fmt.Println("Erreur lors de la lecture des données :", err)
+		return
+	}
+	// Désérialisation des données JSON
+	err = json.Unmarshal(data_serial, &data)
+	if err != nil {
+		fmt.Println("Erreur lors de la désérialisation des données :", err)
+		return
+	}
+	fmt.Println("\nDonnées reçues avec succès.")
+}
+
+func receive_int(conn net.Conn, data *int) {
+	// Lecture des données sérialisées de la taille spécifiée
 	buffer := make([]byte, 4) // Un int32 nécessite 4 octets
-	binary.BigEndian.PutUint32(buffer, uint32(value))
-
-	// Envoyer d'abord la taille des données
-	sizeBuffer := make([]byte, 4)
-	binary.BigEndian.PutUint32(sizeBuffer, uint32(len(buffer)))
-
-	_, err := conn.Write(sizeBuffer)
+	_, err := conn.Read(buffer)
 	if err != nil {
-		return fmt.Errorf("erreur lors de l'envoi de la taille : %v", err)
+		fmt.Println("Erreur lors de la réception du pourcentage :", err)
+		return
 	}
-
-	// Envoyer les données au serveur
-	_, err = conn.Write(buffer)
-	if err != nil {
-		return fmt.Errorf("erreur lors de l'envoi des données : %v", err)
-	}
-
-	// Lire la confirmation du serveur
-	confirmationBuffer := make([]byte, 1024)
-	n, err := conn.Read(confirmationBuffer)
-	if err != nil {
-		return fmt.Errorf("erreur lors de la lecture de la confirmation : %v", err)
-	}
-	fmt.Println("Confirmation du serveur :", string(confirmationBuffer[:n]))
-
-	return nil
+	// Convertir les bytes en entier
+	*data = int(binary.BigEndian.Uint32(buffer))
 }
 
 func main() {
@@ -127,36 +158,28 @@ func main() {
 	var prompt_data prompt_dataItem // Structure pour stocker les données à envoyer
 	prompt(&prompt_data)            // Enregistrement des données via le prompt
 
-	// --- Envoie des données pour générer la grille ---
-	err = sendInt(conn, prompt_data.dim_x)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	err = sendInt(conn, prompt_data.dim_y)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	// --- Envoie des données ---
+	send_data(conn, prompt_data)
 
 	// --- Affichage de la progression ---
+	var percentage int
+	for percentage < 100 {
+		receive_int(conn, &percentage) // Reception de la progression
+		fmt.Printf("\r[")              // Permet de revenir au début de la ligne sans en ajouter une nouvelle, afin de mettre à jour la même ligne de la console
+		for j := 0; j < 50; j++ {
+			if j < percentage/2 {
+				fmt.Print("=")
+			} else {
+				fmt.Print(" ")
+			}
+		}
+		fmt.Printf("] %d%%", percentage)
+	}
 
 	// --- Récupération de la grille ---
-	matrixBuffer := make([]byte, 8192) // Taille plus grande pour contenir une matrice
-	n, err := conn.Read(matrixBuffer)
-	if err != nil {
-		fmt.Println("Erreur lors de la lecture de la matrice :", err)
-		return
-	}
-	// Désérialiser la matrice
-	var matrix [][]int
-	err = json.Unmarshal(matrixBuffer[:n], &matrix)
-	if err != nil {
-		fmt.Println("Erreur lors de la désérialisation JSON :", err)
-		return
-	}
+	var grid [][]int
+	receive_data(conn, &grid)
 
 	// --- Exportation de l'image de sortie ---
-	display(matrix, prompt_data.dim_x, prompt_data.dim_y)
+	display(grid, prompt_data.Dim_x, prompt_data.Dim_y)
 }
