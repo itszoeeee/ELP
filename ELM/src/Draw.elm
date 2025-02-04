@@ -93,7 +93,7 @@ calculatePositions movements =
 
                 F :: rest -> 
                     let
-                        step = 1.0 
+                        step = 0.5
                         (normalizedDx, normalizedDy) = normalize (dx, dy)
                         newPosition = (x + normalizedDx * step, y + normalizedDy * step)
                     in
