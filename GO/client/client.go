@@ -18,7 +18,7 @@ type prompt_dataItem struct {
 	NbWorker int
 }
 
-func promptInt(prompt string) (int, error) {
+func promptInt(prompt string) int {
 	var value int
 	for {
 		fmt.Print(prompt)
@@ -33,52 +33,40 @@ func promptInt(prompt string) (int, error) {
 		value = temp_value
 		break
 	}
-	return value, nil
+	return value
 }
 
 func prompt(prompt_data *prompt_dataItem) {
-	var err error
-	prompt_data.Dim_x, err = promptInt("Entrez la largeur de la grille que vous voulez générer (entier) : ")
-	if err != nil {
-		fmt.Println(err)
-		return
+	prompt_data.Dim_x = promptInt("Entrez la largeur de la grille que vous voulez générer (entier) : ")
+	prompt_data.Dim_y = promptInt("Entrez la hauteur de la grille que vous voulez générer (entier) : ")
+
+	prompt_data.Proba = promptInt("Entrez le pourcentage de cases vides ou avec des routes que vous souhaitez (entier entre 0 et 100) : ")
+	if prompt_data.Proba > 100 { // Vérifie si la valeur est inférieure à 100
+		fmt.Println("Erreur : la probabilité de tirer une case vide doit être inférieure à 100")
+		os.Exit(1)
 	}
 
-	prompt_data.Dim_y, err = promptInt("Entrez la hauteur de la grille que vous voulez générer (entier) : ")
-	if err != nil {
-		fmt.Println(err)
-		return
+	prompt_data.Div_x = promptInt("Entrez la division sur la largeur de la grille que vous voulez paralléliser (entier) : ")
+	if prompt_data.Div_x > prompt_data.Dim_x { // Vérifie que la division sur x est plus petite que la dimension sur x
+		fmt.Println("Erreur : la division sur la largeur doit être plus petite que la dimension sur la largeur")
+		os.Exit(1)
+	}
+	if prompt_data.Dim_x/prompt_data.Div_x < 7 { // Vérifie que la taille d'une sous-grille est plus grande que 1 (avec des bordures de 3)
+		fmt.Printf("Erreur : la dimension sur x doit être plus grande que %d pour une division de %d sur la largeur\n", 7*prompt_data.Div_x, prompt_data.Div_x)
+		os.Exit(1)
 	}
 
-	prompt_data.Proba, err = promptInt("Entrez le pourcentage de cases vides ou avec des routes que vous souhaitez (entier entre 0 et 100) : ")
-	if err != nil {
-		fmt.Println(err)
-		return
+	prompt_data.Div_y = promptInt("Entrez la division sur la hauteur de la grille que vous voulez paralléliser (entier) : ")
+	if prompt_data.Div_y > prompt_data.Dim_y { // Vérifie que la division sur y est plus petite que la dimension sur y
+		fmt.Println("Erreur : la division sur la longueur doit être plus petite que la dimension sur la longueur")
+		os.Exit(1)
+	}
+	if prompt_data.Dim_y/prompt_data.Div_y < 7 { // Vérifie que la taille d'une sous-grille est plus grande que 1 (avec des bordures de 3)
+		fmt.Printf("Erreur : la dimension sur y doit être plus grande que %d pour une division de %d sur la longueur\n", 7*prompt_data.Div_y, prompt_data.Div_y)
+		os.Exit(1)
 	}
 
-	// Vérifier si la valeur est inférieure à 100
-
-	prompt_data.Div_x, err = promptInt("Entrez la division sur la largeur de la grille que vous voulez paralléliser (entier) : ")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	// Vérifier que la division sur x est plus petite que la dimension sur x
-
-	prompt_data.Div_y, err = promptInt("Entrez la division sur la hauteur de la grille que vous voulez paralléliser (entier) : ")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	// Vérifier que la division sur y est plus petite que la dimension sur y
-
-	prompt_data.NbWorker, err = promptInt("Entrez le nombre de threads maximal que vous voulez utiliser (entier) : ")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	prompt_data.NbWorker = promptInt("Entrez le nombre de threads maximal que vous voulez utiliser (entier) : ")
 }
 
 func send_data(conn net.Conn, data prompt_dataItem) {
@@ -91,14 +79,12 @@ func send_data(conn net.Conn, data prompt_dataItem) {
 	// Envoyer la taille des données JSON
 	buffer_size := make([]byte, 4)
 	binary.BigEndian.PutUint32(buffer_size, uint32(len(data_serial)))
-	_, err = conn.Write(buffer_size)
-	if err != nil {
+	if _, err := conn.Write(buffer_size); err != nil {
 		fmt.Println("Erreur lors de l'envoi de la taille des données :", err)
 		return
 	}
 	// Envoyer les données sérialisées
-	_, err = conn.Write(data_serial)
-	if err != nil {
+	if _, err := conn.Write(data_serial); err != nil {
 		fmt.Println("Erreur lors de l'envoi des données :", err)
 		return
 	}
@@ -108,8 +94,7 @@ func send_data(conn net.Conn, data prompt_dataItem) {
 func receive_data(conn net.Conn, data *[][]int) {
 	// Lecture de la taille des données JSON
 	buffer_size := make([]byte, 4)
-	_, err := conn.Read(buffer_size)
-	if err != nil {
+	if _, err := conn.Read(buffer_size); err != nil {
 		fmt.Println("Erreur lors de la lecture de la taille :", err)
 		return
 	}
@@ -117,14 +102,12 @@ func receive_data(conn net.Conn, data *[][]int) {
 
 	// Lecture des données sérialisées de la taille spécifiée
 	data_serial := make([]byte, data_size)
-	_, err = conn.Read(data_serial)
-	if err != nil {
+	if _, err := conn.Read(data_serial); err != nil {
 		fmt.Println("Erreur lors de la lecture des données :", err)
 		return
 	}
 	// Désérialisation des données JSON
-	err = json.Unmarshal(data_serial, &data)
-	if err != nil {
+	if err := json.Unmarshal(data_serial, data); err != nil {
 		fmt.Println("Erreur lors de la désérialisation des données :", err)
 		return
 	}
@@ -134,8 +117,7 @@ func receive_data(conn net.Conn, data *[][]int) {
 func receive_int(conn net.Conn, data *int) {
 	// Lecture des données sérialisées de la taille spécifiée
 	buffer := make([]byte, 4) // Un int32 nécessite 4 octets
-	_, err := conn.Read(buffer)
-	if err != nil {
+	if _, err := conn.Read(buffer); err != nil {
 		fmt.Println("Erreur lors de la réception du pourcentage :", err)
 		return
 	}
@@ -181,5 +163,9 @@ func main() {
 	receive_data(conn, &grid)
 
 	// --- Exportation de l'image de sortie ---
-	display(grid, prompt_data.Dim_x, prompt_data.Dim_y)
+	var erreur bool = false
+	display(grid, prompt_data.Dim_x, prompt_data.Dim_y, &erreur)
+	if erreur {
+		fmt.Println("Une erreur est survenue dans la génération de l'image, veuillez essayer d'autres paramètres.")
+	}
 }

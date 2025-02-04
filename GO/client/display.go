@@ -21,7 +21,7 @@ const F_H = 10
 const F_V = 11
 
 // Fonction pour ouvrir une image et la décoder
-func loadImage(path string) (image.Image, error) {
+func load_image(path string) (image.Image, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -36,23 +36,26 @@ func loadImage(path string) (image.Image, error) {
 	return img, nil
 }
 
-func createTile_Json() (Tiles []image.Image, err error) {
+func create_tile() (Tiles []image.Image, err error) {
 	// Initialisation des tuiles
 	var T, C, F image.Image
 	for i := 0; i < 12; i++ {
 		Tiles = append(Tiles, image.Transparent)
 	}
+
 	orients, images := lecture_json("input.JSON")
-	Tiles[BLANK], err = loadImage(images[3])
+
+	Tiles[BLANK], err = load_image(images[3])
 	if err != nil {
 		return Tiles, fmt.Errorf("erreur lors du chargement de l'image 'blank.png': %w", err)
 	}
-	Tiles[CROSS], err = loadImage(images[4])
+
+	Tiles[CROSS], err = load_image(images[4])
 	if err != nil {
 		return Tiles, fmt.Errorf("erreur lors du chargement de l'image 'cross.png': %w", err)
 	}
 
-	T, err = loadImage(images[0])
+	T, err = load_image(images[0])
 	if err != nil {
 		return Tiles, fmt.Errorf("erreur lors du chargement de l'image 't_.png': %w", err)
 	}
@@ -61,7 +64,7 @@ func createTile_Json() (Tiles []image.Image, err error) {
 		return Tiles, fmt.Errorf("erreur lors de la premiere rotation: %w", err)
 	}
 
-	C, err = loadImage(images[1])
+	C, err = load_image(images[1])
 	if err != nil {
 		return Tiles, fmt.Errorf("erreur lors du chargement de l'image 'c_.png': %w", err)
 	}
@@ -70,7 +73,7 @@ func createTile_Json() (Tiles []image.Image, err error) {
 		return Tiles, fmt.Errorf("erreur lors de la premiere rotation: %w", err)
 	}
 
-	F, err = loadImage(images[2])
+	F, err = load_image(images[2])
 	if err != nil {
 		return Tiles, fmt.Errorf("erreur lors du chargement de l'image 'f_.png': %w", err)
 	}
@@ -82,13 +85,8 @@ func createTile_Json() (Tiles []image.Image, err error) {
 	return Tiles, err
 }
 
-// Fonction pour créer une image vide avec une taille spécifique (largeur, hauteur)
-func createEmptyImage(width, height int) *image.RGBA {
-	return image.NewRGBA(image.Rect(0, 0, width, height))
-}
-
 // Fonction pour dessiner l'image dans une case spécifique (x, y) de la matrice
-func placeImageInMatrix(dst *image.RGBA, src image.Image, gridX, gridY, cellSize int) {
+func place_image(dst *image.RGBA, src image.Image, gridX, gridY, cellSize int) {
 	// Position de départ de la cellule
 	startX := gridX * cellSize
 	startY := gridY * cellSize
@@ -96,38 +94,34 @@ func placeImageInMatrix(dst *image.RGBA, src image.Image, gridX, gridY, cellSize
 	// Dessine l'image src dans la cellule
 	for y := 0; y < cellSize; y++ {
 		for x := 0; x < cellSize; x++ {
-			// Récupère la couleur de chaque pixel de l'image source
-			color := src.At(x, y)
-			// Place cette couleur dans l'image de destination
-			dst.Set(startX+x, startY+y, color)
+			color := src.At(x, y)              // Récupère la couleur de chaque pixel de l'image source
+			dst.Set(startX+x, startY+y, color) // Place cette couleur dans l'image de destination
 		}
 	}
 }
 
-func display(grid [][]int, width, height int) {
+func display(grid [][]int, dim_x, dim_y int, erreur *bool) {
 	// Création des tuile
-	Tiles, err := createTile_Json()
+	Tiles, err := create_tile()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
 	// Dimensions de l'image de sortie
-	gridWidth, gridHeight := width, height
 	cellSize := Tiles[BLANK].Bounds().Dx() // On suppose que la cellule fait la même taille que les images chargées
-
 	// Créer de l'image de sortie
-	outputImage := createEmptyImage(cellSize*gridWidth, cellSize*gridHeight)
+	outputImage := image.NewRGBA(image.Rect(0, 0, cellSize*dim_x, cellSize*dim_y))
 
 	// Affichage des tuiles (si la tuile est collapsed)
-	for j := 0; j < height; j++ {
-		for i := 0; i < width; i++ {
+	for j := 0; j < dim_y; j++ {
+		for i := 0; i < dim_x; i++ {
 			var cell = grid[j][i]
 			if cell != -1 {
-				index := cell
-				placeImageInMatrix(outputImage, Tiles[index], i, j, cellSize)
+				place_image(outputImage, Tiles[cell], i, j, cellSize)
 			} else {
-				placeImageInMatrix(outputImage, image.Transparent, i, j, cellSize)
+				*erreur = true
+				place_image(outputImage, image.Transparent, i, j, cellSize)
 			}
 		}
 	}

@@ -557,8 +557,8 @@ func app(dim_x, dim_y, proba, div_x, div_y, numWorkers int) {
 	if numWorkers == 0 {
 		fmt.Println("\n\nErreur : numWorkers doit être strictement positif\n")
 	} else {
-		stopChan := make(chan struct{})             // Créer un canal pour arrêter le rapporteur de progression
-		go progressReporter(stopChan, dim_x, dim_y) // Lancer le calcul de progression
+		stopChan := make(chan struct{}) // Créer un canal pour arrêter le rapporteur de progression
+		//go progressReporter(stopChan, dim_x, dim_y) // Lancer le calcul de progression
 
 		// ----- Initialisation -----
 		var grid [][]*gridItem         // Création de la grille
@@ -597,12 +597,12 @@ func app(dim_x, dim_y, proba, div_x, div_y, numWorkers int) {
 }
 
 func main() {
-	dim_x := 100
-	dim_y := 27
-	proba := 90
-	div_x := 3
-	div_y := 3
-	nbWorkers := 9
+	dim_x := 10
+	dim_y := 10
+	proba := 50
+	div_x := 15
+	div_y := 15
+	nbWorkers := 10
 
 	app(dim_x, dim_y, proba, div_x, div_y, nbWorkers)
 }

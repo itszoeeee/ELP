@@ -17,14 +17,18 @@ type prompt_dataItem struct {
 	NbWorker int
 }
 
+type clientProgress struct {
+	nb_cell_collapsed int64
+	stopChan          chan struct{}
+}
+
 var numer_port = 8000
 var address = fmt.Sprintf(":%d", numer_port)
 
 func receive_data(conn net.Conn, data *prompt_dataItem) {
 	// Lecture de la taille des données JSON
 	buffer_size := make([]byte, 4)
-	_, err := conn.Read(buffer_size)
-	if err != nil {
+	if _, err := conn.Read(buffer_size); err != nil {
 		fmt.Println("Erreur lors de la lecture de la taille :", err)
 		return
 	}
@@ -32,14 +36,12 @@ func receive_data(conn net.Conn, data *prompt_dataItem) {
 
 	// Lecture des données sérialisées de la taille spécifiée
 	data_serial := make([]byte, data_size)
-	_, err = conn.Read(data_serial)
-	if err != nil {
+	if _, err := conn.Read(data_serial); err != nil {
 		fmt.Println("Erreur lors de la lecture des données :", err)
 		return
 	}
 	// Désérialisation des données JSON
-	err = json.Unmarshal(data_serial, &data)
-	if err != nil {
+	if err := json.Unmarshal(data_serial, data); err != nil {
 		fmt.Println("Erreur lors de la désérialisation des données :", err)
 		return
 	}
@@ -56,14 +58,12 @@ func send_data(conn net.Conn, data [][]int) {
 	// Envoyer la taille des données JSON
 	buffer_size := make([]byte, 4)
 	binary.BigEndian.PutUint32(buffer_size, uint32(len(data_serial)))
-	_, err = conn.Write(buffer_size)
-	if err != nil {
+	if _, err := conn.Write(buffer_size); err != nil {
 		fmt.Println("Erreur lors de l'envoi de la taille des données :", err)
 		return
 	}
 	// Envoyer les données sérialisées
-	_, err = conn.Write(data_serial)
-	if err != nil {
+	if _, err := conn.Write(data_serial); err != nil {
 		fmt.Println("Erreur lors de l'envoi des données :", err)
 		return
 	}
@@ -87,6 +87,11 @@ func handleClient(conn net.Conn, wg *sync.WaitGroup) {
 	defer conn.Close() // Ferme la connexion client
 	defer wg.Done()    // Ferme la tâche associée au client
 
+	client_progress := &clientProgress{
+		nb_cell_collapsed: 0,
+		stopChan:          make(chan struct{}),
+	}
+
 	// --- Reception des données ---
 	var prompt_data prompt_dataItem // Structure pour stocker les données à recevoir
 	receive_data(conn, &prompt_data)
@@ -99,15 +104,21 @@ func handleClient(conn net.Conn, wg *sync.WaitGroup) {
 	div_y := prompt_data.Div_y
 	nbWorkers := prompt_data.NbWorker
 
-	stopChan := make(chan struct{})           // Créer un canal pour arrêter le rapporteur de progression
-	go progress(stopChan, conn, dim_x, dim_y) // Lancer le calcul de progression
+	if dim_x > 0 || dim_y > 0 || div_x > 0 || div_y > 0 || nbWorkers > 0 {
+		stopChan := make(chan struct{}) // Créer un canal pour arrêter le rapporteur de progression
+		go progress(client_progress.stopChan, conn, dim_x, dim_y, &client_progress.nb_cell_collapsed)
 
-	grid_process(&grid_TCP, dim_x, dim_y, proba, div_x, div_y, nbWorkers) // Calcul de la grille
+		grid_process(&grid_TCP, dim_x, dim_y, proba, div_x, div_y, nbWorkers, &client_progress.nb_cell_collapsed) // Calcul de la grille
 
-	close(stopChan) // Ferme le canal de progression
-	fmt.Println("Génération de la grille terminée pour le client :", conn.RemoteAddr())
+		close(stopChan) // Ferme le canal de progression
+		fmt.Println("Génération de la grille terminée pour le client :", conn.RemoteAddr())
 
-	send_data(conn, grid_TCP) // Envoie de la grille au client
+		close(client_progress.stopChan)
+		send_data(conn, grid_TCP) // Envoie de la grille au client
+	} else {
+		fmt.Println("Données reçues invalides ou incomplètes pour :", conn.RemoteAddr())
+	}
+
 }
 
 func main() {

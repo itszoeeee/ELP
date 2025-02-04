@@ -121,8 +121,6 @@ type weightedItem struct {
 	weight int
 }
 
-var nb_cell_collapsed int64 = 0
-
 // Fonction pour effectuer un tirage pondéré
 func weighted_random(weightedOptions []weightedItem) int {
 	// Génère un nombre aléatoire entre 0 et 100 (poids total)
@@ -208,7 +206,7 @@ func grid_init(grid *[][]*gridItem, dim_x, dim_y int) {
 }
 
 // Algorithme de Wave Function Collapsed
-func WFC(grid *[][]*gridItem, step, proba int) {
+func WFC(grid *[][]*gridItem, step, proba int, nb_cell_collapsed *int64) {
 	gridCopy := *grid
 
 	for _, row := range *grid { // Vérifie les cellules déjà collapsed
@@ -312,8 +310,8 @@ func WFC(grid *[][]*gridItem, step, proba int) {
 			nextGrid = append(nextGrid, row) // Ajouter la ligne à nextGrid
 			gridCopy = append(gridCopy, copyRow)
 		}
-		*grid = nextGrid                       // Cette affectation oblige de passer grid en tant que pointeur car le passage par référence par défaut d'un slice ne permet de créer de nouveau élément
-		atomic.AddInt64(&nb_cell_collapsed, 1) // Incrémente le nombre d'itération pour le calcul du pourcentage
+		*grid = nextGrid                      // Cette affectation oblige de passer grid en tant que pointeur car le passage par référence par défaut d'un slice ne permet de créer de nouveau élément
+		atomic.AddInt64(nb_cell_collapsed, 1) // Incrémente le nombre d'itération pour le calcul du pourcentage
 	}
 }
 
@@ -326,7 +324,7 @@ func worker(tasks <-chan func(), wg *sync.WaitGroup) {
 }
 
 // Fonction pour envoyer le calcul de WFC dans une Goroutines
-func multi_process(grid *[][]*gridItem, dim_x, dim_y, proba, div_x, div_y, numWorkers int) {
+func multi_process(grid *[][]*gridItem, dim_x, dim_y, proba, div_x, div_y, numWorkers int, nb_cell_collapsed *int64) {
 	var wg sync.WaitGroup
 	wg.Add(div_x * div_y)                   // Diviser la matrice en div_x * div_y sous-grilles et envoyer les tâches aux workers
 	tasks := make(chan func(), div_x*div_y) // Canal pour envoyer des tâches aux workers
@@ -371,7 +369,7 @@ func multi_process(grid *[][]*gridItem, dim_x, dim_y, proba, div_x, div_y, numWo
 
 				// Envoyer la tâche au canal, qui sera récupéré par un worker
 				tasks <- func() {
-					WFC(&subGrid, 0, proba) // Remarque : c'est inutile de passer subGrid par référence car Go le fait indirectement mais l'objectif est de se rapprocher de la fonction WFC qui elle necessite un passage par référence à cause de nextGrid
+					WFC(&subGrid, 0, proba, nb_cell_collapsed) // Remarque : c'est inutile de passer subGrid par référence car Go le fait indirectement mais l'objectif est de se rapprocher de la fonction WFC qui elle necessite un passage par référence à cause de nextGrid
 				}
 			}
 		}
@@ -380,13 +378,13 @@ func multi_process(grid *[][]*gridItem, dim_x, dim_y, proba, div_x, div_y, numWo
 	close(tasks) // Fermer le canal des tâches une fois qu'elles sont toutes envoyées
 }
 
-func progress(stopChan <-chan struct{}, conn net.Conn, dim_x, dim_y int) { // Calcul de la progession
+func progress(stopChan <-chan struct{}, conn net.Conn, dim_x, dim_y int, nb_cell_collapsed *int64) { // Calcul de la progession
 	var lastPercentage = -1
 
 	for {
 		select {
 		case <-time.After(100 * time.Millisecond): // Toutes les 100 millisecondes
-			percentage := int((atomic.LoadInt64(&nb_cell_collapsed) * 100)) / (dim_x * dim_y) // Converstion en int de la structure atomic pour protéger l'accès
+			percentage := int((atomic.LoadInt64(nb_cell_collapsed) * 100)) / (dim_x * dim_y) // Converstion en int de la structure atomic pour protéger l'accès
 			if percentage != lastPercentage {
 				send_int(conn, percentage) // Envoie du pourcentage au client
 				lastPercentage = percentage
@@ -398,7 +396,7 @@ func progress(stopChan <-chan struct{}, conn net.Conn, dim_x, dim_y int) { // Ca
 	}
 }
 
-func grid_process(grid_TCP *[][]int, dim_x, dim_y, proba, div_x, div_y, numWorkers int) {
+func grid_process(grid_TCP *[][]int, dim_x, dim_y, proba, div_x, div_y, numWorkers int, nb_cell_collapsed *int64) {
 
 	// ----- Initialisation -----
 	var grid [][]*gridItem         // Création de la grille
@@ -406,10 +404,10 @@ func grid_process(grid_TCP *[][]int, dim_x, dim_y, proba, div_x, div_y, numWorke
 
 	// ----- Boucle principale -----
 	if div_x == 1 && div_y == 1 { // Si on utilise pas de Goroutines
-		WFC(&grid, 0, proba)
+		WFC(&grid, 0, proba, nb_cell_collapsed)
 	} else {
-		multi_process(&grid, dim_x, dim_y, proba, div_x, div_y, numWorkers)
-		WFC(&grid, 1, proba)
+		multi_process(&grid, dim_x, dim_y, proba, div_x, div_y, numWorkers, nb_cell_collapsed)
+		WFC(&grid, 1, proba, nb_cell_collapsed)
 	}
 
 	// Grille à retourner par le serveur TCP
@@ -417,8 +415,8 @@ func grid_process(grid_TCP *[][]int, dim_x, dim_y, proba, div_x, div_y, numWorke
 		var row []int                // Créer un slice vide pour chaque ligne
 		for i := 0; i < dim_x; i++ { // Initialiser chaque cellule dans la ligne
 			cell := grid[j][i]
-			if cell.collapsed {
-				row = append(row, cell.options...)
+			if cell.collapsed && len(cell.options) != 0 { // Vérifie si la cellule est bien collapsed
+				row = append(row, cell.options[0])
 			} else {
 				row = append(row, -1) // Renvoie -1 sur la cellule n'est pas collapsed
 			}
