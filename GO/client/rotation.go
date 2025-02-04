@@ -15,7 +15,7 @@ var Orientations = map[int][]int{ // Équivalent d'un dico pour faire correspond
 func flipImage(img image.Image, orient int) (image.Image, image.Image, image.Image, image.Image, error) {
 	// Rotation des images en fonction de param (1 pour une rotation, 2 pour deux rotations, ...)
 	if Orientations[orient] == nil {
-		return nil, nil, nil, nil, fmt.Errorf("orientation invalide:")
+		return nil, nil, nil, nil, fmt.Errorf("orientation invalide")
 	}
 
 	// Trouver la liste des orientations à partir de l'orientation actuelle
