@@ -1,5 +1,9 @@
 # ELM
 
+# Instructions pour l'execution
+Ouvrir le fichier index.html dans un navigateur et entrer vos commandes.
+Les erreurs liées à des entrées invalides ne sont pas gérées, donc il ne faut pas se tromper...
+
 # Tests
 ## Level 1
 - TcTurtle : [Forward 3]
