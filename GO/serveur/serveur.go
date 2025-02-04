@@ -8,10 +8,107 @@ import (
 	"sync"
 )
 
-// var old_matrix = [][]int{{4, 6, 4, -1}, {1, 3, 4, 0}, {3, 1, 1, 3}, {4, 0, 0, 6}}
-var matrix = [][]int{{10, 9, 1, 5, 6, 9, 3, 3, 3, 10, 9, 1, 1, 10, 4}, {8, 6, 8, 7, 8, 2, 1, 9, 1, 3, 1, 10, 8, 0, 2}, {4, 7, 4, 6, 9, 5, 7, 5, 0, 2, 8, 7, 4, 0, 6}, {9, 4, 6, 3, 1, 3, 9, 8, 7, 5, 6, 1, 4, 0, 7}, {1, 1, 10, 5, 7, 9, 5, 6, 5, 7, 10, 8, 6, 3, 5}, {8, 0, 7, 10, 1, 1, 10, 3, 10, 4, 0, 2, 8, 2, 10}, {4, 0, 2, 3, 3, 8, 7, 1, 8, 6, 3, 5, 6, 1, 3}, {6, 3, 5, 2, 5, 2, 4, 0, 6, 3, 5, 0, 7, 10, 9}, {0, 6, 3, 9, 10, 9, 4, 7, 10, 1, 3, 3, 1, 3, 1}, {0, 0, 2, 1, 3, 4, 2, 5, 7, 10, 9, 1, 3, 4, 0}, {10, 3, 1, 10, 5, 6, 5, 7, 9, 3, 4, 7, 5, 2, 10}, {7, 5, 7, 8, 7, 8, 0, 2, 5, 2, 5, 6, 3, 4, 7}, {9, 3, 1, 5, 6, 1, 10, 4, 7, 4, 7, 8, 6, 5, 2}, {2, 5, 0, 7, 8, 0, 7, 1, 5, 6, 5, 2, 10, 8, 11}, {6, 8, 0, 2, 5, 0, 2, 8, 0, 0, 0, 6, 8, 6, 4}}
+type prompt_dataItem struct {
+	Dim_x    int
+	Dim_y    int
+	Proba    int
+	Div_x    int
+	Div_y    int
+	NbWorker int
+}
+
 var numer_port = 8000
 var address = fmt.Sprintf(":%d", numer_port)
+
+func receive_data(conn net.Conn, data *prompt_dataItem) {
+	// Lecture de la taille des données JSON
+	buffer_size := make([]byte, 4)
+	_, err := conn.Read(buffer_size)
+	if err != nil {
+		fmt.Println("Erreur lors de la lecture de la taille :", err)
+		return
+	}
+	data_size := binary.BigEndian.Uint32(buffer_size)
+
+	// Lecture des données sérialisées de la taille spécifiée
+	data_serial := make([]byte, data_size)
+	_, err = conn.Read(data_serial)
+	if err != nil {
+		fmt.Println("Erreur lors de la lecture des données :", err)
+		return
+	}
+	// Désérialisation des données JSON
+	err = json.Unmarshal(data_serial, &data)
+	if err != nil {
+		fmt.Println("Erreur lors de la désérialisation des données :", err)
+		return
+	}
+	fmt.Println("Données reçues avec succès du client :", conn.RemoteAddr())
+}
+
+func send_data(conn net.Conn, data [][]int) {
+	// Sérialisation en JSON de data
+	data_serial, err := json.Marshal(data)
+	if err != nil {
+		fmt.Println("Erreur de sérialisation JSON :", err)
+		return
+	}
+	// Envoyer la taille des données JSON
+	buffer_size := make([]byte, 4)
+	binary.BigEndian.PutUint32(buffer_size, uint32(len(data_serial)))
+	_, err = conn.Write(buffer_size)
+	if err != nil {
+		fmt.Println("Erreur lors de l'envoi de la taille des données :", err)
+		return
+	}
+	// Envoyer les données sérialisées
+	_, err = conn.Write(data_serial)
+	if err != nil {
+		fmt.Println("Erreur lors de l'envoi des données :", err)
+		return
+	}
+	fmt.Println("Données envoyées avec succès au client :", conn.RemoteAddr())
+}
+
+func send_int(conn net.Conn, data int) {
+	// Convertir l'entier en bytes
+	buffer := make([]byte, 4) // Un int32 nécessite 4 octets
+	binary.BigEndian.PutUint32(buffer, uint32(data))
+
+	// Envoyer du pourcentage
+	_, err := conn.Write(buffer)
+	if err != nil {
+		fmt.Println("Erreur lors de l'envoi du pourcentage :", err)
+		return
+	}
+}
+
+func handleClient(conn net.Conn, wg *sync.WaitGroup) {
+	defer conn.Close() // Ferme la connexion client
+	defer wg.Done()    // Ferme la tâche associée au client
+
+	// --- Reception des données ---
+	var prompt_data prompt_dataItem // Structure pour stocker les données à recevoir
+	receive_data(conn, &prompt_data)
+
+	var grid_TCP [][]int
+	dim_x := prompt_data.Dim_x
+	dim_y := prompt_data.Dim_y
+	proba := prompt_data.Proba
+	div_x := prompt_data.Div_x
+	div_y := prompt_data.Div_y
+	nbWorkers := prompt_data.NbWorker
+
+	stopChan := make(chan struct{})           // Créer un canal pour arrêter le rapporteur de progression
+	go progress(stopChan, conn, dim_x, dim_y) // Lancer le calcul de progression
+
+	grid_process(&grid_TCP, dim_x, dim_y, proba, div_x, div_y, nbWorkers) // Calcul de la grille
+
+	close(stopChan) // Ferme le canal de progression
+	fmt.Println("Génération de la grille terminée pour le client :", conn.RemoteAddr())
+
+	send_data(conn, grid_TCP) // Envoie de la grille au client
+}
 
 func main() {
 	listener, err := net.Listen("tcp", address)
@@ -32,70 +129,8 @@ func main() {
 			continue
 		}
 		fmt.Println("Nouvelle connexion acceptée de", conn.RemoteAddr())
-		//incrementer le waitGroup pour chaque client et lancer une goroutine pour gerer la connexion
+		// Incrementer le waitGroup pour chaque client et lancer une goroutine pour gerer la connexion
 		wg.Add(1)
 		go handleClient(conn, &wg)
 	}
-}
-
-func handleClient(conn net.Conn, wg *sync.WaitGroup) {
-	defer wg.Done()
-	defer conn.Close()
-
-	Largeur, err := receiveInt(conn)
-	if err != nil {
-		fmt.Println("Erreur de réception de la largeur :", err)
-		return
-	}
-
-	Longueur, err := receiveInt(conn)
-	if err != nil {
-		fmt.Println("Erreur de réception de la longueur :", err)
-		return
-	}
-
-	fmt.Printf("Client %s - Largeur: %d Longueur: %d\n", conn.RemoteAddr(), Largeur, Longueur)
-
-	data, err := json.Marshal(matrix)
-	if err != nil {
-		fmt.Println("Erreur lors de la sérialisation JSON :", err)
-		return
-	}
-
-	_, err = conn.Write(data)
-	if err != nil {
-		fmt.Println("Erreur lors de l'envoi des données :", err)
-		return
-	}
-
-	fmt.Printf("Matrice envoyée au client %s.\n", conn.RemoteAddr())
-}
-
-func receiveInt(conn net.Conn) (int, error) {
-	// Lire la taille des données
-	sizeBuffer := make([]byte, 4)
-	_, err := conn.Read(sizeBuffer)
-	if err != nil {
-		return 0, fmt.Errorf("erreur lors de la lecture de la taille : %v", err)
-	}
-	size := binary.BigEndian.Uint32(sizeBuffer)
-
-	// Lire les données
-	dataBuffer := make([]byte, size)
-	_, err = conn.Read(dataBuffer)
-	if err != nil {
-		return 0, fmt.Errorf("erreur lors de la lecture des données : %v", err)
-	}
-
-	// Convertir les bytes en entier
-	value := int(binary.BigEndian.Uint32(dataBuffer))
-
-	// Envoyer une confirmation au client
-	confirmationMessage := fmt.Sprintf("Entier reçu : %d", value)
-	_, err = conn.Write([]byte(confirmationMessage))
-	if err != nil {
-		return 0, fmt.Errorf("erreur lors de l'envoi de la confirmation : %v", err)
-	}
-
-	return value, nil
 }

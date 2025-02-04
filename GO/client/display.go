@@ -120,8 +120,8 @@ func display(grid [][]int, width, height int) {
 	outputImage := createEmptyImage(cellSize*gridWidth, cellSize*gridHeight)
 
 	// Affichage des tuiles (si la tuile est collapsed)
-	for j := 0; j < width; j++ {
-		for i := 0; i < height; i++ {
+	for j := 0; j < height; j++ {
+		for i := 0; i < width; i++ {
 			var cell = grid[j][i]
 			if cell != -1 {
 				index := cell
@@ -135,15 +135,15 @@ func display(grid [][]int, width, height int) {
 	// Exporter l'image résultante dans un fichier PNG
 	outFile, err := os.Create("output.png")
 	if err != nil {
-		fmt.Println("\n\n Erreur lors de la création de l'image de sortie:\n", err)
+		fmt.Println("Erreur lors de la création de l'image de sortie :", err)
 		return
 	}
 	defer outFile.Close()
 
 	err = png.Encode(outFile, outputImage)
 	if err != nil {
-		fmt.Println("\n\n Erreur lors de l'exportation de l'image:\n", err)
+		fmt.Println("Erreur lors de l'exportation de l'image :", err)
 	}
 
-	fmt.Println("\n\n Image exportée avec succès dans output.png\n")
+	fmt.Println("Image exportée avec succès dans output.png")
 }

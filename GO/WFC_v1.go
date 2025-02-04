@@ -6,7 +6,6 @@ import (
 	"image/png"
 	"math/rand"
 	"os"
-	"time"
 )
 
 const DIM = 20
@@ -269,59 +268,52 @@ func checkValid(option *[]int, valid []int) {
 	*option = newOption
 }
 
-// Structure représentant un élément avec une valeur et un poids.
-type WeightedItem struct {
-	Value  int
-	Weight int
+// Structure représentant une option avec une valeur et un poids
+type weightedItem struct {
+	value  int
+	weight int
 }
 
-// Fonction pour effectuer un tirage pondéré.
-func weightedRandom(items []WeightedItem) int {
-	// Calculer la somme totale des poids.
-	totalWeight := 0
-	for _, item := range items {
-		totalWeight += item.Weight
-	}
+// Fonction pour effectuer un tirage pondéré
+func weighted_random(weightedOptions []weightedItem) int {
+	// Génère un nombre aléatoire entre 0 et 100 (poids total)
+	randomWeight := rand.Intn(100)
 
-	// Générer un nombre aléatoire entre 0 et la somme des poids.
-	rand.Seed(time.Now().UnixNano())
-	randomWeight := rand.Intn(totalWeight)
-
-	// Parcourir les éléments pour trouver celui correspondant au poids généré.
+	// Parcours les éléments pour trouver celui correspondant au poids généré
 	currentWeight := 0
-	for _, item := range items {
-		currentWeight += item.Weight
+	for _, option := range weightedOptions {
+		currentWeight += option.weight
 		if randomWeight < currentWeight {
-			return item.Value
+			return option.value
 		}
 	}
-
-	return 0 // Ne devrait jamais arriver si les poids sont bien définis.
+	return BLANK // Ne devrait jamais arriver si les poids sont bien définis
 }
 
-func proba(liste []int, p int) []WeightedItem { // fonction qui prend une liste d'options et leur associe un poids
-	var items []WeightedItem
-	containsBlank := false // Pour verifier si blank est bien disponible parmi les options possibles
-	for _, elem := range liste {
-		if elem == 0 {
+// Fonction qui prend une liste d'options et leur associe un poids
+func set_weight(options []int, proba int) []weightedItem {
+	var weightedOptions []weightedItem
+	containsBlank := false // Vérifie si blank est bien disponible parmi les options possibles
+	for _, option := range options {
+		if option == BLANK {
 			containsBlank = true
 			break
 		}
 	}
 
-	// Parcours de la liste
-	for i := 0; i < len(liste); i++ {
+	// Parcours des options
+	for i := 0; i < len(options); i++ {
 		if containsBlank {
-			if liste[i] == 0 {
-				items = append(items, WeightedItem{0, p}) // l'option 0 correspond à "blank"
+			if options[i] == BLANK {
+				weightedOptions = append(weightedOptions, weightedItem{BLANK, proba}) // Ajoute un poids de proba
 			} else {
-				items = append(items, WeightedItem{liste[i], (100 - p) / (len(liste) - 1)})
+				weightedOptions = append(weightedOptions, weightedItem{options[i], (100 - proba) / (len(options) - 1)}) // Ajoute un poids de 1-proba (ne pas tirer un BLANK) selon toutes les autres options disponibles sauf BLANK
 			}
 		} else {
-			items = append(items, WeightedItem{liste[i], 100 / len(liste)})
+			weightedOptions = append(weightedOptions, weightedItem{options[i], 100 / len(options)})
 		}
 	}
-	return items
+	return weightedOptions
 }
 
 func main() {
@@ -377,10 +369,10 @@ func main() {
 		if len(randomItem.options) != 0 {                                       // vérifie que l'élèment c'est pas vide (erreur)
 			// var pick int = randomItem.options[rand.Intn(len(randomItem.options))] // choisir un option disponible (aléatoirement)
 			// randomItem.options = []int{pick}
-			var p = 80 // probabilité qu'on veut de tirer "blank" (en %)
-			var items []WeightedItem = proba(randomItem.options, p)
-			var result = weightedRandom(items)
-			randomItem.options = []int{result}
+			var p = 95 // probabilité qu'on veut de tirer "blank" (en %)
+			var items []weightedItem = set_weight(randomItem.options, p)
+			var pick = weighted_random(items)
+			randomItem.options = []int{pick}
 		}
 
 		// Création de la tuile suivante
